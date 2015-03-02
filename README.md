@@ -15,7 +15,7 @@ OC compiles a program written in the oc language with file extension .oc.
 **Optional arguments:**
 ```
   -@ flags		Use DEBUGF and DEBUGSTMT for debugging
-  -D string	Set option for cpp
+  -D string		Set option for cpp
   -l			Debug yylex()
   -y			Debug yyparse()
 ```
