@@ -1,4 +1,4 @@
-# CMPS104 Fundamental Compiler Design
+## CMPS104 Fundamental Compiler Design
 
 OC compiles a program written in the oc language with file extension .oc.
 
