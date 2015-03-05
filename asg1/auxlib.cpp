@@ -63,7 +63,7 @@ void veprintf (const char *format, va_list args) {
 	assert (format != NULL);
 	fflush (NULL);
 	if (strstr (format, "%:") == format) {
-		fprintf (stderr, "%s: ", get_execname ());
+		fprintf (stderr, "%s:", get_execname ());
 		format += 2;
 	}
 	vfprintf (stderr, format, args);
