@@ -25,12 +25,22 @@ int yydebug;
 
 const string cpp_name = "/usr/bin/cpp";
 string yyin_cpp_command;
+string cpp_opts = "";
 
-// Open a pipe from the C preprocessor.
-// Exit failure if can't.
-// Assignes opened pipe to FILE *yyin.
+// Open a file
+FILE *file_open (const char *filename, const char *mode) {
+	FILE *file = fopen (filename, mode);
+	if (file == NULL) {
+		errprintf ("Error: %s: failed to open file: %s\n",
+					get_execname(), filename);
+		exit (get_exitstatus());
+	}
+	return file;
+}
+
+// Open a pipe to CPP
 void yyin_cpp_popen (const char *filename) {
-	yyin_cpp_command = cpp_name + " " + filename;
+	yyin_cpp_command = cpp_name + " " + cpp_opts + filename;
 	yyin = popen (yyin_cpp_command.c_str(), "r");
 	if (yyin == NULL) {
 		syserrprintf (yyin_cpp_command.c_str());
@@ -38,7 +48,8 @@ void yyin_cpp_popen (const char *filename) {
 	}
 }
 
-void yyin_cpp_pclose (void) {
+// Close the pipe to CPP
+void yyin_cpp_pclose () {
 	int pclose_rc = pclose (yyin);
 	eprint_status (yyin_cpp_command.c_str(), pclose_rc);
 	if (pclose_rc != 0) set_exitstatus (EXIT_FAILURE);
@@ -48,7 +59,8 @@ bool want_echo () {
 	return not (isatty (fileno (stdin)) and isatty (fileno (stdout)));
 }
 
-void scan_opts (int argc, char **argv) {
+// Scan the user options
+const char *scan_opts (int argc, char **argv) {
 	int option;
 	opterr = 0;
 	yy_flex_debug = 0;
@@ -58,6 +70,7 @@ void scan_opts (int argc, char **argv) {
 		if (option == EOF) break;
 		switch (option) {
 			case '@': set_debugflags (optarg);   break;
+			case 'D': cpp_opts = string("-D ") + optarg; break;
 			case 'l': yy_flex_debug = 1;         break;
 			case 'y': yydebug = 1;               break;
 			default:  errprintf ("%:bad option (%c)\n", optopt); break;
@@ -67,13 +80,8 @@ void scan_opts (int argc, char **argv) {
 		errprintf ("Usage: %s [-ly] [filename]\n", get_execname());
 		exit (get_exitstatus());
 	}
-	const char* filename = optind == argc ? "-" : argv[optind];
-	yyin_cpp_popen (filename);
-	DEBUGF ('m', "filename = %s, yyin = %p, fileno (yyin) = %d\n",
-			filename, yyin, fileno (yyin));
-	//scanner_newfilename (filename);
+	return optind == argc ? "-" : argv[optind];
 }
-
 
 // Test harness to tokenize FILE* yyin
 void tokenize () {
@@ -81,10 +89,26 @@ void tokenize () {
 		char line[1024];
 		char *rc = fgets (line, 1024, yyin);
 		if (rc == NULL) break;
-		
-		char *token = strtok_r (line, " \t\n", &lpos);
-		intern_stringset (token);
+		char *token = strtok (line, " \t\n");
+		while (token != NULL) {
+			intern_stringset (token);
+			token = strtok (NULL, " \t\n");
+		}
 	}
+}
+
+// Create the stringset file
+void stringset (const char *filename) {
+	string str_filename = basename (filename);
+	size_t index = str_filename.find(".oc");
+	if (index == string::npos) {
+		errprintf ("%: missing or improper suffix %s\n", str_filename.c_str());
+		exit (get_exitstatus());
+	}
+	str_filename.replace(index, 3, ".str");
+	FILE *str_file = file_open (str_filename.c_str(), "w");
+	dump_stringset (str_file);
+	fclose (str_file);
 }
 
 int main (int argc, char **argv) {
@@ -95,7 +119,11 @@ int main (int argc, char **argv) {
 			eprintf ("%s%c", argv[argi], argi < argc - 1 ? ' ' : '\n');
 		}
 	);
-	scan_opts (argc, argv);
+	const char* filename = scan_opts (argc, argv);
+	yyin_cpp_popen (filename);
+	DEBUGF ('m', "filename = %s, yyin = %p, fileno (yyin) = %d\n",
+			filename, yyin, fileno (yyin));
+	//scanner_newfilename (filename);
 	/*scanner_setecho (want_echo());
 	parsecode = yyparse();
 	if (parsecode) {
@@ -107,6 +135,7 @@ int main (int argc, char **argv) {
 	free_ast (yyparse_astree);*/
 	tokenize();
 	yyin_cpp_pclose();
+	stringset (filename);
 	/*DEBUGSTMT ('s', dump_stringset (stderr); );
 	yylex_destroy();*/
 	return get_exitstatus();
