@@ -17,7 +17,7 @@ EXECBIN   = oc
 SUBMITS   = ${CHEADER} ${CSOURCE} ${MKFILE} README
 SOURCES   = ${SUBMITS}
 
-# Must define for current project
+# Define for current project
 PROJECT   = cmps104a-wm.s15 asg1
 
 all : ${EXECBIN}

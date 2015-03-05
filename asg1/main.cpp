@@ -31,8 +31,7 @@ string cpp_opts = "";
 FILE *file_open (const char *filename, const char *mode) {
 	FILE *file = fopen (filename, mode);
 	if (file == NULL) {
-		errprintf ("Error: %s: failed to open file: %s\n",
-					get_execname(), filename);
+		errprintf ("%: failed to open file: %s\n", filename);
 		exit (get_exitstatus());
 	}
 	return file;
@@ -73,7 +72,7 @@ const char *scan_opts (int argc, char **argv) {
 			case 'D': cpp_opts = string("-D ") + optarg; break;
 			case 'l': yy_flex_debug = 1;         break;
 			case 'y': yydebug = 1;               break;
-			default:  errprintf ("%:bad option (%c)\n", optopt); break;
+			default:  errprintf ("%: bad option (%c)\n", optopt); break;
 		}
 	}
 	if (optind > argc) {
