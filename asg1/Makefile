@@ -14,8 +14,8 @@ CSOURCE   = main.cpp auxlib.cpp stringset.cpp
 CHEADER   = auxlib.h stringset.h
 OBJECTS   = ${CSOURCE:.cpp=.o}
 EXECBIN   = oc
-SUBMITS   = ${CHEADER} ${CSOURCE} ${MKFILE} README
-SOURCES   = ${SUBMITS}
+SOURCES   = ${CHEADER} ${CSOURCE} ${MKFILE} README
+SUBMITS   = ${SOURCES}
 
 # Define for current project
 PROJECT   = cmps104a-wm.s15 asg1
@@ -30,10 +30,10 @@ ${EXECBIN} : ${OBJECTS}
 
 ci : ${SOURCES}
 	cid + ${SOURCES}
-	checksource ${SUBMITS}
+	checksource ${SOURCES}
 
 clean :
-	- rm ${OBJECTS} ${DEPSFILE} ${EXECBIN}.errs
+	- rm ${OBJECTS} ${DEPSFILE}
 
 spotless : clean
 	- rm ${EXECBIN}
