@@ -86,7 +86,7 @@ void errprintf (const char *format, ...) {
 }
 
 void syserrprintf (const char *object) {
-	errprintf ("%:%s: %s\n", object, strerror (errno));
+	errprintf ("%: %s: %s\n", object, strerror (errno));
 }
 
 void set_exitstatus (int newexitstatus) {
