@@ -96,15 +96,20 @@ void tokenize () {
 	}
 }
 
-// Create the stringset file
-void stringset (const char *filename) {
-	string str_filename = basename (filename);
-	size_t index = str_filename.find(".oc");
+// Check for .oc extension and return the basename
+string str_basename (const char *filename) {
+	string str_basename = basename (filename);
+	size_t index = str_basename.find(".oc");
 	if (index == string::npos) {
-		errprintf ("%: missing or improper suffix %s\n", str_filename.c_str());
+		errprintf ("%: missing or improper suffix %s\n", str_basename.c_str());
 		exit (get_exitstatus());
 	}
-	str_filename.replace(index, 3, ".str");
+	return str_basename.substr (0, index);
+}
+
+// Create the stringset file
+void string_set (string basename) {
+	string str_filename = basename + ".str";
 	FILE *str_file = file_open (str_filename.c_str(), "w");
 	dump_stringset (str_file);
 	fclose (str_file);
@@ -134,7 +139,8 @@ int main (int argc, char **argv) {
 	free_ast (yyparse_astree);*/
 	tokenize();
 	yyin_cpp_pclose();
-	stringset (filename);
+	string basename = str_basename (filename);
+	string_set (basename);
 	/*DEBUGSTMT ('s', dump_stringset (stderr); );
 	yylex_destroy();*/
 	return get_exitstatus();
