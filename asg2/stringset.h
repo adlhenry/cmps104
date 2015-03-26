@@ -1,5 +1,5 @@
 // Author: Adam Henry, adlhenry@ucsc.edu
-// $Id: stringset.h,v 1.1 2015-03-26 10:12:49-07 - - $
+// $Id: stringset.h,v 1.1 2015-03-26 14:33:42-07 - - $
 
 #ifndef __STRINGSET__
 #define __STRINGSET__

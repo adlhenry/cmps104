@@ -1,5 +1,5 @@
 // Author: Adam Henry, adlhenry@ucsc.edu
-// $Id: stringset.cpp,v 1.1 2015-03-26 10:12:49-07 - - $
+// $Id: stringset.cpp,v 1.1 2015-03-26 14:33:42-07 - - $
 
 #include <string>
 #include <unordered_set>

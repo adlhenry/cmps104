@@ -1,5 +1,5 @@
 // Author: Adam Henry, adlhenry@ucsc.edu
-// $Id: main.cpp,v 1.1 2015-03-26 10:12:49-07 - - $
+// $Id: main.cpp,v 1.1 2015-03-26 14:33:42-07 - - $
 
 #include <string>
 #include <vector>
@@ -13,15 +13,9 @@ using namespace std;
 #include <unistd.h>
 
 #include "auxlib.h"
+#include "lyutils.h"
 #include "stringset.h"
-/*#include "lyutils.h"
 #include "astree.h"
-#include "emit.h"*/
-
-// Temporary bypass variables
-FILE *yyin;
-int yy_flex_debug;
-int yydebug;
 
 const string cpp_name = "/usr/bin/cpp";
 string yyin_cpp_command;
@@ -101,7 +95,8 @@ string str_basename (const char *filename) {
 	string str_basename = basename (filename);
 	size_t index = str_basename.find(".oc");
 	if (index == string::npos) {
-		errprintf ("%: missing or improper suffix %s\n", str_basename.c_str());
+		errprintf ("%: missing or improper suffix %s\n", 
+					str_basename.c_str());
 		exit (get_exitstatus());
 	}
 	return str_basename.substr (0, index);

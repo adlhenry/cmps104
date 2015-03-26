@@ -1,5 +1,5 @@
 // Author: Adam Henry, adlhenry@ucsc.edu
-// $Id: auxlib.h,v 1.1 2015-03-26 10:12:49-07 - - $
+// $Id: auxlib.h,v 1.1 2015-03-26 14:33:42-07 - - $
 
 #ifndef __AUXLIB_H__
 #define __AUXLIB_H__
@@ -121,5 +121,5 @@ void __debugprintf (char flag, const char *file, int line,
 #define RCSH(X) RCS2(__COUNTER__,X)
 #define RCSC(X) RCSH(X \
 "\0$Compiled: " __FILE__ " " __DATE__ " " __TIME__ " $")
-RCSH("$Id: auxlib.h,v 1.1 2015-03-26 10:12:49-07 - - $") 
+RCSH("$Id: auxlib.h,v 1.1 2015-03-26 14:33:42-07 - - $") 
 #endif

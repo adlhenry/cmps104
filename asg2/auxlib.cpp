@@ -1,5 +1,5 @@
 // Author: Adam Henry, adlhenry@ucsc.edu
-// $Id: auxlib.cpp,v 1.1 2015-03-26 10:12:49-07 - - $
+// $Id: auxlib.cpp,v 1.1 2015-03-26 14:33:42-07 - - $
 
 #include <assert.h>
 #include <errno.h>
