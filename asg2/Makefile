@@ -18,6 +18,7 @@ HYGEN     = yyparse.h
 CYGEN     = yyparse.cpp
 CGENS     = ${CLGEN} ${CYGEN}
 ALLGENS   = ${HYGEN} ${CGENS}
+ALLSRC    = ${CSOURCE} ${CGENS}
 OBJECTS   = ${ALLSRC:.cpp=.o}
 LREPORT   = yylex.output
 YREPORT   = yyparse.output
