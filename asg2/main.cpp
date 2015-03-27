@@ -76,17 +76,11 @@ const char *scan_opts (int argc, char **argv) {
 	return optind == argc ? "-" : argv[optind];
 }
 
-// Test harness to tokenize FILE* yyin
-void tokenize () {
+// Tokenize FILE* yyin
+void yytokenize () {
 	for (;;) {
-		char line[1024];
-		char *rc = fgets (line, 1024, yyin);
-		if (rc == NULL) break;
-		char *token = strtok (line, " \t\n");
-		while (token != NULL) {
-			intern_stringset (token);
-			token = strtok (NULL, " \t\n");
-		}
+		int yyint = yylex();
+		if (yyint == YYEOF) break;
 	}
 }
 
@@ -132,11 +126,10 @@ int main (int argc, char **argv) {
 		emit_sm_code (yyparse_astree);
 	}
 	free_ast (yyparse_astree);*/
-	tokenize();
+	yytokenize();
 	yyin_cpp_pclose();
 	string basename = str_basename (filename);
 	string_set (basename);
-	/*DEBUGSTMT ('s', dump_stringset (stderr); );
-	yylex_destroy();*/
+	yylex_destroy();
 	return get_exitstatus();
 }

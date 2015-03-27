@@ -18,8 +18,10 @@ HYGEN     = yyparse.h
 CYGEN     = yyparse.cpp
 CGENS     = ${CLGEN} ${CYGEN}
 ALLGENS   = ${HYGEN} ${CGENS}
-ALLCSRC   = ${CSOURCE} ${CGENS}
 OBJECTS   = ${ALLSRC:.cpp=.o}
+LREPORT   = yylex.output
+YREPORT   = yyparse.output
+REPORTS   = ${LREPORT} ${YREPORT}
 EXECBIN   = oc
 SOURCES   = ${CHEADER} ${CSOURCE} ${LSOURCE} ${YSOURCE} ${MKFILE} README
 SUBMITS   = ${SOURCES}
@@ -36,7 +38,7 @@ ${EXECBIN} : ${OBJECTS}
 	${GCC} -c $<
 
 ${CLGEN} : ${LSOURCE}
-	flex --outfile=${CLGEN} ${LSOURCE}
+	flex --outfile=${CLGEN} ${LSOURCE} 2>${LREPORT}
 
 ${CYGEN} ${HYGEN} : ${YSOURCE}
 	bison --defines=${HYGEN} --output=${CYGEN} ${YSOURCE}
@@ -46,7 +48,7 @@ ci : ${SOURCES}
 	checksource ${SOURCES}
 
 clean :
-	- rm ${OBJECTS} ${ALLGENS} ${DEPSFILE}
+	- rm ${OBJECTS} ${ALLGENS} ${REPORTS} ${DEPSFILE}
 
 spotless : clean
 	- rm ${EXECBIN}
@@ -54,9 +56,9 @@ spotless : clean
 submit : ${SUBMITS}
 	submit ${PROJECT} ${SUBMITS}
 
-deps : ${CSOURCE} ${CHEADER}
+deps : ${ALLSRC}
 	@ echo "# ${DEPSFILE} created `date`" >${DEPSFILE}
-	${MKDEPS} ${CSOURCE} >>${DEPSFILE}
+	${MKDEPS} ${ALLSRC} >>${DEPSFILE}
 
 ${DEPSFILE} :
 	@ touch ${DEPSFILE}
