@@ -15,8 +15,7 @@ using namespace std;
 #include "auxlib.h"
 #include "stringset.h"
 /*#include "lyutils.h"
-#include "astree.h"
-#include "emit.h"*/
+#include "astree.h"*/
 
 // Temporary bypass variables
 FILE *yyin;
@@ -83,7 +82,7 @@ const char *scan_opts (int argc, char **argv) {
 }
 
 // Test harness to tokenize FILE* yyin
-void tokenize () {
+void yytokenize () {
 	for (;;) {
 		char line[1024];
 		char *rc = fgets (line, 1024, yyin);
@@ -108,9 +107,8 @@ string str_basename (const char *filename) {
 }
 
 // Create the stringset file
-void string_set (string basename) {
-	string str_filename = basename + ".str";
-	FILE *str_file = file_open (str_filename.c_str(), "w");
+void string_set (string filename) {
+	FILE *str_file = file_open (filename.c_str(), "w");
 	dump_stringset (str_file);
 	fclose (str_file);
 }
@@ -124,6 +122,7 @@ int main (int argc, char **argv) {
 		}
 	);
 	const char* filename = scan_opts (argc, argv);
+	string basename = str_basename (filename);
 	yyin_cpp_popen (filename);
 	DEBUGF ('m', "filename = %s, yyin = %p, fileno (yyin) = %d\n",
 			filename, yyin, fileno (yyin));
@@ -137,11 +136,9 @@ int main (int argc, char **argv) {
 		emit_sm_code (yyparse_astree);
 	}
 	free_ast (yyparse_astree);*/
-	tokenize();
+	yytokenize();
 	yyin_cpp_pclose();
-	string basename = str_basename (filename);
-	string_set (basename);
-	/*DEBUGSTMT ('s', dump_stringset (stderr); );
-	yylex_destroy();*/
+	string_set (basename + ".str");
+	//yylex_destroy();
 	return get_exitstatus();
 }

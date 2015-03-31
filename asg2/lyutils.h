@@ -41,6 +41,7 @@ int yylval_token (int symbol);
 void error_destructor (astree*);
 
 void scanner_include (void);
+void dump_tokenset (FILE *out);
 
 typedef astree *astree_pointer;
 #define YYSTYPE astree_pointer

@@ -79,8 +79,7 @@ const char *scan_opts (int argc, char **argv) {
 // Tokenize FILE* yyin
 void yytokenize () {
 	for (;;) {
-		int yyint = yylex();
-		if (yyint == YYEOF) break;
+		if (yylex() == YYEOF) break;
 	}
 }
 
@@ -97,11 +96,17 @@ string str_basename (const char *filename) {
 }
 
 // Create the stringset file
-void string_set (string basename) {
-	string str_filename = basename + ".str";
-	FILE *str_file = file_open (str_filename.c_str(), "w");
+void string_set (string filename) {
+	FILE *str_file = file_open (filename.c_str(), "w");
 	dump_stringset (str_file);
 	fclose (str_file);
+}
+
+// Create the tokenset file
+void token_set (string filename) {
+	FILE *tok_file = file_open (filename.c_str(), "w");
+	dump_tokenset (tok_file);
+	fclose (tok_file);
 }
 
 int main (int argc, char **argv) {
@@ -113,12 +118,13 @@ int main (int argc, char **argv) {
 		}
 	);
 	const char* filename = scan_opts (argc, argv);
+	string basename = str_basename (filename);
 	yyin_cpp_popen (filename);
 	DEBUGF ('m', "filename = %s, yyin = %p, fileno (yyin) = %d\n",
 			filename, yyin, fileno (yyin));
-	//scanner_newfilename (filename);
-	/*scanner_setecho (want_echo());
-	parsecode = yyparse();
+	scanner_newfilename (filename);
+	//scanner_setecho (want_echo());
+	/*parsecode = yyparse();
 	if (parsecode) {
 		errprintf ("%:parse failed (%d)\n", parsecode);
 	}else {
@@ -128,8 +134,8 @@ int main (int argc, char **argv) {
 	free_ast (yyparse_astree);*/
 	yytokenize();
 	yyin_cpp_pclose();
-	string basename = str_basename (filename);
-	string_set (basename);
+	string_set (basename + ".str");
+	token_set (basename + ".tok");
 	yylex_destroy();
 	return get_exitstatus();
 }
