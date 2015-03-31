@@ -21,6 +21,7 @@ bool scan_echo = false;
 vector<string> included_filenames;
 FILE *tok_file = NULL;
 
+// Specify the token file
 void scanner_tokfile (FILE *out) {
 	tok_file = out;
 }
