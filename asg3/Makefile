@@ -28,7 +28,7 @@ SOURCES   = ${CHEADER} ${CSOURCE} ${LSOURCE} ${YSOURCE} ${MKFILE} README
 SUBMITS   = ${SOURCES}
 
 # Define for current project
-PROJECT   = cmps104a-wm.s15 asg2
+PROJECT   = cmps104a-wm.s15 asg3
 
 all : ${EXECBIN}
 

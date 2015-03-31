@@ -19,7 +19,11 @@ int scan_linenr = 1;
 int scan_offset = 0;
 bool scan_echo = false;
 vector<string> included_filenames;
-vector<string> tokenset;
+FILE *tok_file = NULL;
+
+void scanner_tokfile (FILE *out) {
+	tok_file = out;
+}
 
 const string *scanner_filename (int filenr) {
 	return &included_filenames.at(filenr);
@@ -66,19 +70,15 @@ void scanner_badtoken (char *lexeme) {
 
 // Print the token
 void print_token (astree *node) {
-	char buffer [256];
-	sprintf (buffer, "%4ld %3ld.%03ld %4d %-13s (%s)\n",
+	fprintf (tok_file, "%4ld %3ld.%03ld %4d %-13s (%s)\n",
 		node->filenr, node->linenr, node->offset,
 		node->symbol, get_yytname (node->symbol),
 		node->lexinfo->c_str());
-	tokenset.push_back (buffer);
 }
 
 // Print the directive
 void print_directive (int linenr, const char *filename) {
-	char buffer [256];
-	sprintf (buffer, "# %d \"%s\"\n", linenr, filename);
-	tokenset.push_back (buffer);
+	fprintf (tok_file, "# %d \"%s\"\n", linenr, filename);
 }
 
 int yylval_token (int symbol) {
@@ -114,12 +114,5 @@ void scanner_include (void) {
 		scan_linenr = linenr - 1;
 		DEBUGF ('m', "filename=%s, scan_linenr=%d\n",
 				included_filenames.back().c_str(), scan_linenr);
-	}
-}
-
-// Dump the token set
-void dump_tokenset (FILE *out) {
-	for (auto line : tokenset) {
-		fputs (line.c_str(), out);
 	}
 }

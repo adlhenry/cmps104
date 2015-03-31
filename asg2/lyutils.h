@@ -28,6 +28,7 @@ int yylex_destroy (void);
 const char *get_yytname (int symbol);
 bool is_defined_token (int symbol);
 
+void scanner_tokfile (FILE *out);
 const string *scanner_filename (int filenr);
 void scanner_newfilename (const char *filename);
 void scanner_badchar (unsigned char bad);
@@ -41,7 +42,6 @@ int yylval_token (int symbol);
 void error_destructor (astree*);
 
 void scanner_include (void);
-void dump_tokenset (FILE *out);
 
 typedef astree *astree_pointer;
 #define YYSTYPE astree_pointer

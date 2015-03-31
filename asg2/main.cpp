@@ -105,7 +105,8 @@ void string_set (string filename) {
 // Create the tokenset file
 void token_set (string filename) {
 	FILE *tok_file = file_open (filename.c_str(), "w");
-	dump_tokenset (tok_file);
+	scanner_tokfile (tok_file);
+	yytokenize();
 	fclose (tok_file);
 }
 
@@ -123,6 +124,7 @@ int main (int argc, char **argv) {
 	DEBUGF ('m', "filename = %s, yyin = %p, fileno (yyin) = %d\n",
 			filename, yyin, fileno (yyin));
 	scanner_newfilename (filename);
+	token_set (basename + ".tok");
 	//scanner_setecho (want_echo());
 	/*parsecode = yyparse();
 	if (parsecode) {
@@ -132,10 +134,8 @@ int main (int argc, char **argv) {
 		emit_sm_code (yyparse_astree);
 	}
 	free_ast (yyparse_astree);*/
-	yytokenize();
 	yyin_cpp_pclose();
 	string_set (basename + ".str");
-	token_set (basename + ".tok");
 	yylex_destroy();
 	return get_exitstatus();
 }
