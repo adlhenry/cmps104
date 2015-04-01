@@ -71,24 +71,17 @@ void scanner_badtoken (char *lexeme) {
 
 // Print the token
 void print_token (astree *node) {
-<<<<<<< HEAD
-	printf ("%4lu %3lu.%03lu %4u %-13s (%s)\n",
-=======
 	fprintf (tok_file, "%4ld %3ld.%03ld %4d %-13s (%s)\n",
->>>>>>> origin/master
 		node->filenr, node->linenr, node->offset,
 		node->symbol, get_yytname (node->symbol),
 		node->lexinfo->c_str());
 }
 
-<<<<<<< HEAD
-=======
 // Print the directive
 void print_directive (int linenr, const char *filename) {
 	fprintf (tok_file, "# %d \"%s\"\n", linenr, filename);
 }
 
->>>>>>> origin/master
 int yylval_token (int symbol) {
 	int offset = scan_offset - yyleng;
 	yylval = new_astree (symbol, included_filenames.size() - 1,
@@ -117,12 +110,7 @@ void scanner_include (void) {
 		errprintf ("%: %d: [%s]: invalid directive, ignored\n",
 				scan_rc, yytext);
 	} else {
-<<<<<<< HEAD
-		// Print the directive
-		printf ("# %d \"%s\"\n", linenr, filename);
-=======
 		print_directive (linenr, filename);
->>>>>>> origin/master
 		scanner_newfilename (filename);
 		scan_linenr = linenr - 1;
 		DEBUGF ('m', "filename=%s, scan_linenr=%d\n",

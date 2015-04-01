@@ -25,7 +25,7 @@ string cpp_opts = "";
 FILE *file_open (string filename, const char *mode) {
 	FILE *file = fopen (filename.c_str(), mode);
 	if (file == NULL) {
-		errprintf ("%: failed to open file: %s\n", filename);
+		errprintf ("%: failed to open file: %s\n", filename.c_str());
 		exit (get_exitstatus());
 	}
 	return file;
@@ -89,30 +89,29 @@ string str_basename (const char *filename) {
 }
 
 int main (int argc, char **argv) {
-	//int parsecode = 0;
+	int parsecode = 0;
 	set_execname (argv[0]);
 	const char* filename = scan_opts (argc, argv);
 	string basename = str_basename (filename);
 	
 	FILE *str_file = file_open (basename + ".str", "w");
 	FILE *tok_file = file_open (basename + ".tok", "w");
+	FILE *ast_file = file_open (basename + ".ast", "w");
 	
 	yyin_cpp_popen (filename);
 	scanner_newfilename (filename);
 	scanner_tokfile (tok_file);
-	while (yylex() != YYEOF);
-	//scanner_setecho (want_echo());
-	/*parsecode = yyparse();
+	parsecode = yyparse();
 	if (parsecode) {
 		errprintf ("%: parse failed (%d)\n", parsecode);
-	}else {
-		DEBUGSTMT ('a', dump_astree (stderr, yyparse_astree); );
-		emit_sm_code (yyparse_astree);
+	} else {
+		dump_astree (ast_file, yyparse_astree);
 	}
-	free_ast (yyparse_astree);*/
+	free_ast (yyparse_astree);
 	yyin_cpp_pclose();
 	dump_stringset (str_file);
 	
+	fclose (ast_file);
 	fclose (tok_file);
 	fclose (str_file);
 	

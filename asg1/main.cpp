@@ -28,7 +28,7 @@ string cpp_opts = "";
 FILE *file_open (string filename, const char *mode) {
 	FILE *file = fopen (filename.c_str(), mode);
 	if (file == NULL) {
-		errprintf ("%: failed to open file: %s\n", filename);
+		errprintf ("%: failed to open file: %s\n", filename.c_str());
 		exit (get_exitstatus());
 	}
 	return file;
