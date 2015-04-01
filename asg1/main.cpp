@@ -14,8 +14,6 @@ using namespace std;
 
 #include "auxlib.h"
 #include "stringset.h"
-/*#include "lyutils.h"
-#include "astree.h"*/
 
 // Temporary bypass variables
 FILE *yyin;
@@ -27,8 +25,8 @@ string yyin_cpp_command;
 string cpp_opts = "";
 
 // Open a file
-FILE *file_open (const char *filename, const char *mode) {
-	FILE *file = fopen (filename, mode);
+FILE *file_open (string filename, const char *mode) {
+	FILE *file = fopen (filename.c_str(), mode);
 	if (file == NULL) {
 		errprintf ("%: failed to open file: %s\n", filename);
 		exit (get_exitstatus());
@@ -106,39 +104,15 @@ string str_basename (const char *filename) {
 	return str_basename.substr (0, index);
 }
 
-// Create the stringset file
-void string_set (string filename) {
-	FILE *str_file = file_open (filename.c_str(), "w");
-	dump_stringset (str_file);
-	fclose (str_file);
-}
-
 int main (int argc, char **argv) {
-	//int parsecode = 0;
 	set_execname (argv[0]);
-	DEBUGSTMT ('m',
-		for (int argi = 0; argi < argc; ++argi) {
-			eprintf ("%s%c", argv[argi], argi < argc - 1 ? ' ' : '\n');
-		}
-	);
 	const char* filename = scan_opts (argc, argv);
 	string basename = str_basename (filename);
+	FILE *str_file = file_open (basename + ".str", "w");
 	yyin_cpp_popen (filename);
-	DEBUGF ('m', "filename = %s, yyin = %p, fileno (yyin) = %d\n",
-			filename, yyin, fileno (yyin));
-	//scanner_newfilename (filename);
-	/*scanner_setecho (want_echo());
-	parsecode = yyparse();
-	if (parsecode) {
-		errprintf ("%:parse failed (%d)\n", parsecode);
-	}else {
-		DEBUGSTMT ('a', dump_astree (stderr, yyparse_astree); );
-		emit_sm_code (yyparse_astree);
-	}
-	free_ast (yyparse_astree);*/
 	yytokenize();
 	yyin_cpp_pclose();
-	string_set (basename + ".str");
-	//yylex_destroy();
+	dump_stringset (str_file);
+	fclose (str_file);
 	return get_exitstatus();
 }
