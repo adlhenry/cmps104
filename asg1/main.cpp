@@ -51,10 +51,6 @@ void yyin_cpp_pclose () {
 	if (pclose_rc != 0) set_exitstatus (EXIT_FAILURE);
 }
 
-bool want_echo () {
-	return not (isatty (fileno (stdin)) and isatty (fileno (stdout)));
-}
-
 // Scan the user options
 const char *scan_opts (int argc, char **argv) {
 	int option;
