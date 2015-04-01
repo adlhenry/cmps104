@@ -79,8 +79,7 @@ const char *scan_opts (int argc, char **argv) {
 // Tokenize FILE* yyin
 void yytokenize () {
 	for (;;) {
-		int yyint = yylex();
-		if (yyint == YYEOF) break;
+		if (yylex() == YYEOF) break;
 	}
 }
 

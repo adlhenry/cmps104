@@ -63,10 +63,19 @@ void scanner_badtoken (char *lexeme) {
 				included_filenames.back().c_str(), scan_linenr, lexeme);
 }
 
+// Print the token
+void print_token (astree *node) {
+	printf ("%4lu %3lu.%03lu %4u %-13s (%s)\n",
+		node->filenr, node->linenr, node->offset,
+		node->symbol, get_yytname (node->symbol),
+		node->lexinfo->c_str());
+}
+
 int yylval_token (int symbol) {
 	int offset = scan_offset - yyleng;
 	yylval = new_astree (symbol, included_filenames.size() - 1,
 						scan_linenr, offset, yytext);
+	print_token (yylval);
 	return symbol;
 }
 
@@ -87,13 +96,14 @@ void scanner_include (void) {
 	int linenr;
 	int scan_rc = sscanf (yytext, "# %d \"%[^\"]\"", &linenr, filename);
 	if (scan_rc != 2) {
-	  errprintf ("%: %d: [%s]: invalid directive, ignored\n",
+		errprintf ("%: %d: [%s]: invalid directive, ignored\n",
 				scan_rc, yytext);
 	} else {
-	  printf (";# %d \"%s\"\n", linenr, filename);
-	  scanner_newfilename (filename);
-	  scan_linenr = linenr - 1;
-	  DEBUGF ('m', "filename=%s, scan_linenr=%d\n",
+		// Print the directive
+		printf ("# %d \"%s\"\n", linenr, filename);
+		scanner_newfilename (filename);
+		scan_linenr = linenr - 1;
+		DEBUGF ('m', "filename=%s, scan_linenr=%d\n",
 				included_filenames.back().c_str(), scan_linenr);
 	}
 }
