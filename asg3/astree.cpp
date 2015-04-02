@@ -46,8 +46,52 @@ astree *adopt1sym (astree *root, astree *child, int symbol) {
 	return root;
 }
 
+astree *adopt1syml (astree *root, astree *child, int symbol) {
+	child->symbol = symbol;
+	root = adopt1 (root, child);
+	return root;
+}
+
+astree *adopt2sym (astree *root, astree *left, astree *right, int symbol) {
+	root->symbol = symbol;
+	adopt1 (root, left);
+	adopt1 (root, right);
+	return root;
+}
+
+astree *adopt2syml (astree *root, astree *left, astree *right, int symbol) {
+	left->symbol = symbol;
+	adopt1 (root, left);
+	adopt1 (root, right);
+	return root;
+}
+
+astree *adopt2symr (astree *root, astree *left, astree *right, int symbol) {
+	right->symbol = symbol;
+	adopt1 (root, left);
+	adopt1 (root, right);
+	return root;
+}
+
+astree *adopt3 (astree *child1, astree *child2, astree *child3) {
+	astree *root = new_astree (TOK_FUNCTION, child1->filenr, child1->linenr, 
+								child1->offset, "<<FUNCTION>>");
+	adopt1 (root, child1);
+	adopt1 (root, child2);
+	adopt1 (root, child3);
+	return root;
+}
+
+astree *change_sym (astree *root, int symbol) {
+	root->symbol = symbol;
+	return root;
+}
+
 static void dump_node (FILE *outfile, astree *node) {
-	fprintf (outfile, "%p->{%s(%d) %ld:%ld.%03ld \"%s\" [",
+	fprintf (outfile, "%s \"%s\" %ld.%ld.%03ld", get_yytname (node->symbol),
+			node->lexinfo->c_str(), node->filenr, node->linenr, node->offset);
+
+	/*fprintf (outfile, "%p->{%s(%d) %ld:%ld.%03ld \"%s\" [",
 			node, get_yytname (node->symbol), node->symbol,
 			node->filenr, node->linenr, node->offset,
 			node->lexinfo->c_str());
@@ -57,12 +101,18 @@ static void dump_node (FILE *outfile, astree *node) {
 		need_space = true;
 		fprintf (outfile, "%p", node->children.at(child));
 	}
-	fprintf (outfile, "]}");
+	fprintf (outfile, "]}");*/
 }
 
 static void dump_astree_rec (FILE *outfile, astree *root, int depth) {
 	if (root == NULL) return;
-	fprintf (outfile, "%*s%s ", depth * 3, "", root->lexinfo->c_str());
+	
+	for (int i = -1; i < depth * 3; i ++) {
+		if (i % 3 == 0) fprintf (outfile, "|");
+		fprintf (outfile, " ");
+	}
+	
+	//fprintf (outfile, "%*s%s ", depth * 3, "", root->lexinfo->c_str());
 	dump_node (outfile, root);
 	fprintf (outfile, "\n");
 	for (size_t child = 0; child < root->children.size(); ++child) {

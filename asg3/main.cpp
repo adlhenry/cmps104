@@ -107,7 +107,7 @@ int main (int argc, char **argv) {
 	} else {
 		dump_astree (ast_file, yyparse_astree);
 	}
-	free_ast (yyparse_astree);
+	//free_ast (yyparse_astree);
 	yyin_cpp_pclose();
 	dump_stringset (str_file);
 	
