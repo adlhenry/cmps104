@@ -69,7 +69,7 @@ basetype  : TOK_VOID                            { $$ = $1; }
           | TOK_STRING                          { $$ = $1; }
           | TOK_IDENT                           { $$ = change_sym ($1, TOK_TYPEID); }
           ;
-          
+
 function  : identdecl args ')' block            { $$ = adopt3 ($1, $2, $4); }
           ;
 
