@@ -88,7 +88,10 @@ astree *change_sym (astree *root, int symbol) {
 }
 
 static void dump_node (FILE *outfile, astree *node) {
-	fprintf (outfile, "%s \"%s\" %ld.%ld.%03ld", get_yytname (node->symbol),
+	const char *tname = get_yytname (node->symbol);
+	if (strstr (tname, "TOK_") == tname) tname += 4;
+	
+	fprintf (outfile, "%s \"%s\" %ld.%ld.%ld", tname,
 			node->lexinfo->c_str(), node->filenr, node->linenr, node->offset);
 
 	/*fprintf (outfile, "%p->{%s(%d) %ld:%ld.%03ld \"%s\" [",
@@ -107,9 +110,12 @@ static void dump_node (FILE *outfile, astree *node) {
 static void dump_astree_rec (FILE *outfile, astree *root, int depth) {
 	if (root == NULL) return;
 	
-	for (int i = -1; i < depth * 3; i ++) {
-		if (i % 3 == 0) fprintf (outfile, "|");
-		fprintf (outfile, " ");
+	for (int i = 0; i < depth * 3; i++) {
+		if (i % 3 == 0) {
+			fprintf (outfile, "|");
+		} else {
+			fprintf (outfile, " ");
+		}
 	}
 	
 	//fprintf (outfile, "%*s%s ", depth * 3, "", root->lexinfo->c_str());

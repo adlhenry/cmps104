@@ -51,6 +51,7 @@ program   : program structdef                   { $$ = adopt1 ($1, $2); }
           ;
 
 structdef : TOK_STRUCT TOK_IDENT '{' fields '}' { $$ = adopt2syml ($1, $2, $4, TOK_TYPEID); }
+          ;
 
 fields    : fields fielddecl ';'                { $$ = adopt1 ($1, $2); }
           |
@@ -69,7 +70,7 @@ basetype  : TOK_VOID                            { $$ = $1; }
           | TOK_IDENT                           { $$ = change_sym ($1, TOK_TYPEID); }
           ;
           
-function  : identdecl args ')' block            { $$ = adopt3 ($1, $2, $4);}
+function  : identdecl args ')' block            { $$ = adopt3 ($1, $2, $4); }
           ;
 
 args      : args ',' identdecl                  { $$ = adopt1 ($1, $3); }
@@ -81,8 +82,8 @@ identdecl : basetype TOK_IDENT                  { $$ = adopt1syml ($1, $2, TOK_D
           | basetype TOK_ARRAY TOK_IDENT        { $$ = adopt2symr ($2, $1, $3, TOK_DECLID); }
           ;
 
-block     : states '}'                          { $$ = $1 }
-          | ';'                                 { $$ = $1 }
+block     : states '}'                          { $$ = $1; }
+          | ';'                                 { $$ = $1; }
           ;
 
 states    : states statement                    { $$ = adopt1 ($1, $2); }
@@ -111,6 +112,7 @@ ifelse    : TOK_IF '(' expr ')' statement       { $$ = adopt2 ($1, $3, $5); }
 
 return    : TOK_RETURN expr ';'                 { $$ = adopt1 ($1, $2); }
           | TOK_RETURN ';'                      { $$ = change_sym ($1, TOK_RETURNVOID); }
+		  ;
 
 expr      : binop                               { $$ = $1; }
           | unop                                { $$ = $1; }
