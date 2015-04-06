@@ -90,26 +90,12 @@ astree *change_sym (astree *root, int symbol) {
 static void dump_node (FILE *outfile, astree *node) {
 	const char *tname = get_yytname (node->symbol);
 	if (strstr (tname, "TOK_") == tname) tname += 4;
-	
 	fprintf (outfile, "%s \"%s\" %ld.%ld.%ld", tname,
 			node->lexinfo->c_str(), node->filenr, node->linenr, node->offset);
-
-	/*fprintf (outfile, "%p->{%s(%d) %ld:%ld.%03ld \"%s\" [",
-			node, get_yytname (node->symbol), node->symbol,
-			node->filenr, node->linenr, node->offset,
-			node->lexinfo->c_str());
-	bool need_space = false;
-	for (size_t child = 0; child < node->children.size(); ++child) {
-		if (need_space) fprintf (outfile, " ");
-		need_space = true;
-		fprintf (outfile, "%p", node->children.at(child));
-	}
-	fprintf (outfile, "]}");*/
 }
 
 static void dump_astree_rec (FILE *outfile, astree *root, int depth) {
 	if (root == NULL) return;
-	
 	for (int i = 0; i < depth * 3; i++) {
 		if (i % 3 == 0) {
 			fprintf (outfile, "|");
@@ -117,8 +103,6 @@ static void dump_astree_rec (FILE *outfile, astree *root, int depth) {
 			fprintf (outfile, " ");
 		}
 	}
-	
-	//fprintf (outfile, "%*s%s ", depth * 3, "", root->lexinfo->c_str());
 	dump_node (outfile, root);
 	fprintf (outfile, "\n");
 	for (size_t child = 0; child < root->children.size(); ++child) {

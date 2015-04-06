@@ -48,38 +48,42 @@ void yyin_cpp_pclose () {
 	if (pclose_rc != 0) set_exitstatus (EXIT_FAILURE);
 }
 
-bool want_echo () {
-	return not (isatty (fileno (stdin)) and isatty (fileno (stdout)));
-}
-
 // Scan the user options
 const char *scan_opts (int argc, char **argv) {
-	int option;
+	int opt;
 	opterr = 0;
 	yy_flex_debug = 0;
 	yydebug = 0;
-	for(;;) {
-		option = getopt (argc, argv, "@:ely");
-		if (option == EOF) break;
-		switch (option) {
-			case '@': set_debugflags (optarg);   break;
-			case 'D': cpp_opts = string("-D ") + optarg; break;
-			case 'l': yy_flex_debug = 1;         break;
-			case 'y': yydebug = 1;               break;
-			default:  errprintf ("%: bad option (%c)\n", optopt); break;
+	while ((opt = getopt (argc, argv, "@:D:ly")) != EOF) {
+		switch (opt) {
+			case '@':
+				set_debugflags (optarg);
+				break;
+			case 'D':
+				cpp_opts = string ("-D ") + optarg + " ";
+				break;
+			case 'l':
+				yy_flex_debug = 1;
+				break;
+			case 'y':
+				yydebug = 1;
+				break;
+			default:
+				errprintf ("%: bad option '-%c'\n", optopt);
+				break;
 		}
 	}
-	if (optind > argc) {
-		errprintf ("Usage: %s [-ly] [filename]\n", get_execname());
+	if (optind >= argc) {
+		errprintf ("Usage: %s [-ly] [-@ flag ...] [-D string] filename.oc\n", get_execname());
 		exit (get_exitstatus());
 	}
-	return optind == argc ? "-" : argv[optind];
+	return argv[optind];
 }
 
 // Check for .oc extension and return the basename
 string str_basename (const char *filename) {
 	string str_basename = basename (filename);
-	size_t index = str_basename.find(".oc");
+	size_t index = str_basename.find (".oc");
 	if (index == string::npos) {
 		errprintf ("%: missing or improper suffix %s\n", 
 					str_basename.c_str());

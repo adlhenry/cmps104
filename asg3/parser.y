@@ -149,12 +149,10 @@ allocator : TOK_NEW TOK_IDENT '(' ')'          { $$ = adopt1syml ($1, $2, TOK_TY
           | TOK_NEW basetype '[' expr ']'      { $$ = adopt2sym ($1, $2, $4, TOK_NEWARRAY); }
           ;
 
-call      : TOK_IDENT exprs ')'                { $$ = adopt1 ($2, $1); }
-          ;
-
-exprs     : exprs ',' expr                     { $$ = adopt1 ($1, $3); }
-          | '(' expr                           { $$ = adopt1sym ($1, $2, TOK_CALL); }
-          | '('                                { $$ = change_sym ($1, TOK_CALL); }
+call      : TOK_IDENT '('                     { $$ = adopt1sym ($2, $1, TOK_CALL); }
+          | call expr                         { $$ = adopt1 ($1, $2); }
+          | call ',' expr                     { $$ = adopt1 ($1, $3); }
+          | call ')'                          { $$ = $1; }
           ;
 
 variable  : TOK_IDENT                          { $$ = $1; }
