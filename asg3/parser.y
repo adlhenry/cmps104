@@ -75,14 +75,14 @@ function  : identdecl X1 ')' block              { $$ = adopt3fn ($1, $2, $4); }
 
 X1        : '('                                 { $$ = change_sym ($1, TOK_PARAMLIST); }
           | X2 identdecl                        { $$ = adopt1 ($1, $2); }
-		  | X3 ',' identdecl                    { $$ = adopt1 ($1, $3); }
+          | X3 ',' identdecl                    { $$ = adopt1 ($1, $3); }
           ;
 
 X2        : '('                                 { $$ = change_sym ($1, TOK_PARAMLIST); }
           ;
 
 X3        : X2 identdecl                        { $$ = adopt1 ($1, $2); }
-		  | X3 ',' identdecl                    { $$ = adopt1 ($1, $3); }
+          | X3 ',' identdecl                    { $$ = adopt1 ($1, $3); }
           ;
 
 identdecl : basetype TOK_IDENT                  { $$ = adopt1syml ($1, $2, TOK_DECLID); }
@@ -94,7 +94,7 @@ block     : Y1 '}'                              { $$ = $1; }
           ;
 
 Y1        : '{'                                 { $$ = change_sym ($1, TOK_BLOCK); }
-		  | Y1 statement                        { $$ = adopt1 ($1, $2); }
+          | Y1 statement                        { $$ = adopt1 ($1, $2); }
           ;
 
 statement : block                               { $$ = $1; }
