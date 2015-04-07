@@ -50,11 +50,11 @@ program   : program structdef                   { $$ = adopt1 ($1, $2); }
           |                                     { $$ = new_parseroot (); }
           ;
 
-structdef : TOK_STRUCT TOK_IDENT '{' fields '}' { $$ = adopt2syml ($1, $2, $4, TOK_TYPEID); }
+structdef : W1 '}'                              { $$ = $1; }
           ;
 
-fields    : fields fielddecl ';'                { $$ = adopt1 ($1, $2); }
-          |
+W1        : TOK_STRUCT TOK_IDENT '{'            { $$ = adopt1syml ($1, $2, TOK_TYPEID); }
+          | W1 fielddecl ';'                    { $$ = adopt1 ($1, $2); }
           ;
 
 fielddecl : basetype TOK_IDENT                  { $$ = adopt1syml ($1, $2, TOK_FIELD); }
@@ -70,24 +70,31 @@ basetype  : TOK_VOID                            { $$ = $1; }
           | TOK_IDENT                           { $$ = change_sym ($1, TOK_TYPEID); }
           ;
 
-function  : identdecl args ')' block            { $$ = adopt3 ($1, $2, $4); }
+function  : identdecl X1 ')' block              { $$ = adopt3fn ($1, $2, $4); }
           ;
 
-args      : args ',' identdecl                  { $$ = adopt1 ($1, $3); }
-          | '(' identdecl                       { $$ = adopt1sym ($1, $2, TOK_PARAMLIST); }
-          | '('                                 { $$ = change_sym ($1, TOK_PARAMLIST); }
+X1        : '('                                 { $$ = change_sym ($1, TOK_PARAMLIST); }
+          | X2 identdecl                        { $$ = adopt1 ($1, $2); }
+		  | X3 ',' identdecl                    { $$ = adopt1 ($1, $3); }
+          ;
+
+X2        : '('                                 { $$ = change_sym ($1, TOK_PARAMLIST); }
+          ;
+
+X3        : X2 identdecl                        { $$ = adopt1 ($1, $2); }
+		  | X3 ',' identdecl                    { $$ = adopt1 ($1, $3); }
           ;
 
 identdecl : basetype TOK_IDENT                  { $$ = adopt1syml ($1, $2, TOK_DECLID); }
           | basetype TOK_ARRAY TOK_IDENT        { $$ = adopt2symr ($2, $1, $3, TOK_DECLID); }
           ;
 
-block     : states '}'                          { $$ = $1; }
+block     : Y1 '}'                              { $$ = $1; }
           | ';'                                 { $$ = $1; }
           ;
 
-states    : states statement                    { $$ = adopt1 ($1, $2); }
-          | '{'                                 { $$ = change_sym ($1, TOK_BLOCK); }
+Y1        : '{'                                 { $$ = change_sym ($1, TOK_BLOCK); }
+		  | Y1 statement                        { $$ = adopt1 ($1, $2); }
           ;
 
 statement : block                               { $$ = $1; }
@@ -105,9 +112,8 @@ while     : TOK_WHILE '(' expr ')' statement    { $$ = adopt2 ($1, $3, $5); }
           ;
 
 ifelse    : TOK_IF '(' expr ')' statement       { $$ = adopt2 ($1, $3, $5); }
-          | TOK_IF '(' expr ')' statement TOK_ELSE statement 
-                                                { $$ = adopt2sym ($1, $3, $5, TOK_IFELSE); 
-                                                adopt1 ($1, $7); }
+          | TOK_IF '(' expr ')' statement 
+            TOK_ELSE statement                  { $$ = adopt3sym ($1, $3, $5, $7, TOK_IFELSE); }
           ;
 
 return    : TOK_RETURN expr ';'                 { $$ = adopt1 ($1, $2); }
@@ -153,15 +159,15 @@ call      : Z1 ')'                             { $$ = $1; }
           ;
 
 Z1        : TOK_IDENT '('                      { $$ = adopt1sym ($2, $1, TOK_CALL); }
-          | Z3 expr                            { $$ = adopt1 ($1, $2); }
-          | Z2 ',' expr                        { $$ = adopt1 ($1, $3); }
-          ;
-          
-Z2        : Z3 expr                            { $$ = adopt1 ($1, $2); }
-          | Z2 ',' expr                        { $$ = adopt1 ($1, $3); }
+          | Z2 expr                            { $$ = adopt1 ($1, $2); }
+          | Z3 ',' expr                        { $$ = adopt1 ($1, $3); }
           ;
 
-Z3        : TOK_IDENT '('                      { $$ = adopt1sym ($2, $1, TOK_CALL); }
+Z2        : TOK_IDENT '('                      { $$ = adopt1sym ($2, $1, TOK_CALL); }
+          ;
+
+Z3        : Z2 expr                            { $$ = adopt1 ($1, $2); }
+          | Z3 ',' expr                        { $$ = adopt1 ($1, $3); }
           ;
 
 variable  : TOK_IDENT                          { $$ = $1; }

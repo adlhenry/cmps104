@@ -73,12 +73,28 @@ astree *adopt2symr (astree *root, astree *left, astree *right, int symbol) {
 	return root;
 }
 
-astree *adopt3 (astree *child1, astree *child2, astree *child3) {
-	astree *root = new_astree (TOK_FUNCTION, child1->filenr, child1->linenr, 
-								child1->offset, "<<FUNCTION>>");
+astree *adopt3sym (astree *root, astree *child1, astree *child2, astree *child3, int symbol) {
+	root->symbol = symbol;
 	adopt1 (root, child1);
 	adopt1 (root, child2);
 	adopt1 (root, child3);
+	return root;
+}
+
+astree *adopt3fn (astree *child1, astree *child2, astree *child3) {
+	astree *root = NULL;
+	if (child3->symbol == ';') {
+		root = new_astree (TOK_PROTOTYPE, child1->filenr, child1->linenr, 
+									child1->offset, "<<PROTOTYPE>>");
+		adopt1 (root, child1);
+		adopt1 (root, child2);
+	} else {
+		root = new_astree (TOK_FUNCTION, child1->filenr, child1->linenr, 
+									child1->offset, "<<FUNCTION>>");
+		adopt1 (root, child1);
+		adopt1 (root, child2);
+		adopt1 (root, child3);
+	}
 	return root;
 }
 
