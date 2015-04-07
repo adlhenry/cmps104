@@ -112,7 +112,7 @@ ifelse    : TOK_IF '(' expr ')' statement       { $$ = adopt2 ($1, $3, $5); }
 
 return    : TOK_RETURN expr ';'                 { $$ = adopt1 ($1, $2); }
           | TOK_RETURN ';'                      { $$ = change_sym ($1, TOK_RETURNVOID); }
-		  ;
+          ;
 
 expr      : binop                               { $$ = $1; }
           | unop                                { $$ = $1; }
@@ -149,10 +149,19 @@ allocator : TOK_NEW TOK_IDENT '(' ')'          { $$ = adopt1syml ($1, $2, TOK_TY
           | TOK_NEW basetype '[' expr ']'      { $$ = adopt2sym ($1, $2, $4, TOK_NEWARRAY); }
           ;
 
-call      : TOK_IDENT '('                     { $$ = adopt1sym ($2, $1, TOK_CALL); }
-          | call expr                         { $$ = adopt1 ($1, $2); }
-          | call ',' expr                     { $$ = adopt1 ($1, $3); }
-          | call ')'                          { $$ = $1; }
+call      : Z1 ')'                             { $$ = $1; }
+          ;
+
+Z1        : TOK_IDENT '('                      { $$ = adopt1sym ($2, $1, TOK_CALL); }
+          | Z3 expr                            { $$ = adopt1 ($1, $2); }
+          | Z2 ',' expr                        { $$ = adopt1 ($1, $3); }
+          ;
+          
+Z2        : Z3 expr                            { $$ = adopt1 ($1, $2); }
+          | Z2 ',' expr                        { $$ = adopt1 ($1, $3); }
+          ;
+
+Z3        : TOK_IDENT '('                      { $$ = adopt1sym ($2, $1, TOK_CALL); }
           ;
 
 variable  : TOK_IDENT                          { $$ = $1; }
