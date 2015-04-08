@@ -23,10 +23,15 @@ DIGIT           [0-9]
 IDENT           ({LETTER}({LETTER}|{DIGIT})*)
 NOTIDENT        ({DIGIT}({LETTER}|{DIGIT})*)
 INTCON          ({DIGIT}+)
-CHARCON         ('([^\\'\n]|\\[\\'"0nt])')
-NOTCHARCON      (('([^\\'\n]|\\[\\'"0nt]))|('(\\.*)'))
-STRINGCON       (\"([^\\"\n]|\\[\\'"0nt])*\")
-NOTSTRINGCON    ((\"([^\\"\n]|\\[\\'"0nt])*)|(\"(.*\\.*)*\"))
+CHAR            ([^\\'\n]|\\[\\'"0nt])
+SCHAR           ([^\\"\n]|\\[\\'"0nt])
+NOTCHAR         (\\[^\\'"0nt])
+CHARN           ({CHAR}|{NOTCHAR})
+SCHARN          ({SCHAR}|{NOTCHAR})
+CHARCON         ('{CHAR}')
+STRINGCON       (\"{SCHAR}*\")
+NOTCHARCON      ('{CHARN}*|'{CHAR}*{NOTCHAR}{CHARN}*'|'{CHAR}{2,}'|'')
+NOTSTRINGCON    (\"{SCHARN}*|\"{SCHAR}*{NOTCHAR}{SCHARN}*\")
 
 %%
 

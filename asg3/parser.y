@@ -14,14 +14,16 @@
 %token-table
 %verbose
 
-%token TOK_VOID TOK_BOOL TOK_CHAR TOK_INT TOK_STRING
-%token TOK_WHILE TOK_RETURN TOK_STRUCT TOK_FALSE
-%token TOK_TRUE TOK_NULL TOK_ARRAY TOK_IDENT TOK_INTCON
-%token TOK_CHARCON TOK_STRINGCON 
+%destructor { error_destructor ($$); } <>
 
-%token TOK_ROOT TOK_DECLID TOK_TYPEID TOK_CALL
-%token TOK_NEWARRAY TOK_NEWSTRING TOK_IFELSE
-%token TOK_RETURNVOID TOK_BLOCK TOK_VARDECL 
+%token TOK_VOID TOK_BOOL TOK_CHAR TOK_INT TOK_STRING
+%token TOK_WHILE TOK_RETURN TOK_STRUCT TOK_ARRAY
+%token TOK_FALSE TOK_TRUE TOK_NULL TOK_IDENT
+%token TOK_INTCON TOK_CHARCON TOK_STRINGCON
+
+%token TOK_ROOT TOK_DECLID TOK_TYPEID TOK_NEWARRAY
+%token TOK_NEWSTRING TOK_IFELSE TOK_RETURNVOID
+%token TOK_BLOCK TOK_VARDECL TOK_FUNCTION
 %token TOK_PARAMLIST TOK_PROTOTYPE
 
 %right TOK_IF TOK_ELSE
@@ -30,7 +32,7 @@
 %left '+' '-'
 %left '*' '/' '%'
 %right TOK_POS TOK_NEG '!' TOK_ORD TOK_CHR
-%left TOK_INDEX TOK_FIELD TOK_FUNCTION
+%left TOK_INDEX TOK_FIELD TOK_CALL
 %nonassoc TOK_NEW
 %nonassoc TOK_PAREN
 
@@ -42,7 +44,7 @@ start     : program                             { yyparse_astree = $1; }
           ;
 
 program   : program structdef                   { $$ = adopt1 ($1, $2); }
-          | program function %prec TOK_FUNCTION { $$ = adopt1 ($1, $2); }
+          | program function                    { $$ = adopt1 ($1, $2); }
           | program statement                   { $$ = adopt1 ($1, $2); }
           | program error '}'                   { $$ = $1; }
           | program error ';'                   { $$ = $1; }
@@ -141,7 +143,7 @@ expr      : expr '+' expr                       { $$ = adopt2 ($2, $1, $3); }
           | '(' expr ')' %prec TOK_PAREN        { $$ = $2; }
           | variable                            { $$ = $1; }
           | constant                            { $$ = $1; }
-          ; 
+          ;
 
 allocator : TOK_NEW TOK_IDENT '(' ')'           { $$ = adopt1syml ($1, $2, TOK_TYPEID); }
           | TOK_NEW TOK_STRING '(' expr ')'     { $$ = adopt1sym ($1, $4, TOK_NEWSTRING); }
@@ -151,12 +153,12 @@ allocator : TOK_NEW TOK_IDENT '(' ')'           { $$ = adopt1syml ($1, $2, TOK_T
 call      : Z1 ')'                              { $$ = $1; }
           ;
 
-Z1        : TOK_IDENT '('                       { $$ = adopt1sym ($2, $1, TOK_CALL); }
+Z1        : TOK_IDENT '(' %prec TOK_CALL        { $$ = adopt1sym ($2, $1, TOK_CALL); }
           | Z2 expr                             { $$ = adopt1 ($1, $2); }
           | Z3 ',' expr                         { $$ = adopt1 ($1, $3); }
           ;
 
-Z2        : TOK_IDENT '('                       { $$ = adopt1sym ($2, $1, TOK_CALL); }
+Z2        : TOK_IDENT '(' %prec TOK_CALL        { $$ = adopt1sym ($2, $1, TOK_CALL); }
           ;
 
 Z3        : Z2 expr                             { $$ = adopt1 ($1, $2); }
