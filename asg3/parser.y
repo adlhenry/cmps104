@@ -4,7 +4,6 @@
 
 #include "lyutils.h"
 #include "astree.h"
-#include "assert.h"
 
 %}
 
@@ -73,23 +72,23 @@ basetype  : TOK_VOID                      { $$ = $1; }
           | TOK_CHAR                      { $$ = $1; }
           | TOK_INT                       { $$ = $1; }
           | TOK_STRING                    { $$ = $1; }
-          | TOK_IDENT                     { $$ = change_sym 
+          | TOK_IDENT                     { $$ = change_sym
                                             ($1, TOK_TYPEID); }
           ;
 
 function  : identdecl X1 ')' block        { free_ast ($3);
-                                            $$ = adopt3fn 
+                                            $$ = adopt3fn
                                             ($1, $2, $4); }
           ;
 
-X1        : '('                           { $$ = change_sym 
+X1        : '('                           { $$ = change_sym
                                             ($1, TOK_PARAMLIST); }
           | X2 identdecl                  { $$ = adopt1 ($1, $2); }
           | X3 ',' identdecl              { free_ast ($2);
                                             $$ = adopt1 ($1, $3); }
           ;
 
-X2        : '('                           { $$ = change_sym 
+X2        : '('                           { $$ = change_sym
                                             ($1, TOK_PARAMLIST); }
           ;
 
@@ -108,7 +107,7 @@ block     : Y1 '}'                        { free_ast ($2); $$ = $1; }
           | ';'                           { $$ = $1; }
           ;
 
-Y1        : '{'                           { $$ = change_sym 
+Y1        : '{'                           { $$ = change_sym
                                             ($1, TOK_BLOCK); }
           | Y1 statement                  { $$ = adopt1 ($1, $2); }
           ;
@@ -122,7 +121,7 @@ statement : block                         { $$ = $1; }
           ;
 
 vardecl   : identdecl '=' expr ';'        { free_ast ($4);
-                                            change_sym 
+                                            change_sym
                                             ($2, TOK_VARDECL);
                                             $$ = adopt2 ($2, $1, $3); }
           ;
@@ -145,7 +144,7 @@ ifelse    : TOK_IF '(' expr ')' statement { free_ast2 ($2, $4);
 return    : TOK_RETURN expr ';'           { free_ast ($3);
                                             $$ = adopt1 ($1, $2); }
           | TOK_RETURN ';'                { free_ast ($2);
-                                            $$ = change_sym 
+                                            $$ = change_sym
                                             ($1, TOK_RETURNVOID); }
           ;
 
@@ -161,9 +160,9 @@ expr      : expr '+' expr                 { $$ = adopt2 ($2, $1, $3); }
           | expr TOK_LE expr              { $$ = adopt2 ($2, $1, $3); }
           | expr TOK_GT expr              { $$ = adopt2 ($2, $1, $3); }
           | expr TOK_GE expr              { $$ = adopt2 ($2, $1, $3); }
-          | '+' expr %prec TOK_POS        { $$ = adopt1sym 
+          | '+' expr %prec TOK_POS        { $$ = adopt1sym
                                             ($1, $2, TOK_POS); }
-          | '-' expr %prec TOK_NEG        { $$ = adopt1sym 
+          | '-' expr %prec TOK_NEG        { $$ = adopt1sym
                                             ($1, $2, TOK_NEG); }
           | '!' expr                      { $$ = adopt1 ($1, $2); }
           | TOK_ORD expr                  { $$ = adopt1 ($1, $2); }
@@ -185,7 +184,7 @@ allocator : TOK_NEW TOK_IDENT '(' ')'     { free_ast2 ($3, $4);
                                             $$ = adopt1sym 
                                             ($1, $4, TOK_NEWSTRING); }
           | TOK_NEW basetype '[' expr ']' { free_ast2 ($3, $5);
-                                            change_sym 
+                                            change_sym
                                             ($1, TOK_NEWARRAY);
                                             $$ = adopt2 ($1, $2, $4); }
           ;
@@ -193,14 +192,14 @@ allocator : TOK_NEW TOK_IDENT '(' ')'     { free_ast2 ($3, $4);
 call      : Z1 ')'                        { free_ast ($2); $$ = $1; }
           ;
 
-Z1        : TOK_IDENT '(' %prec TOK_CALL  { $$ = adopt1sym 
+Z1        : TOK_IDENT '(' %prec TOK_CALL  { $$ = adopt1sym
                                             ($2, $1, TOK_CALL); }
           | Z2 expr                       { $$ = adopt1 ($1, $2); }
           | Z3 ',' expr                   { free_ast ($2);
                                             $$ = adopt1 ($1, $3); }
           ;
 
-Z2        : TOK_IDENT '(' %prec TOK_CALL  { $$ = adopt1sym 
+Z2        : TOK_IDENT '(' %prec TOK_CALL  { $$ = adopt1sym
                                             ($2, $1, TOK_CALL); }
           ;
 

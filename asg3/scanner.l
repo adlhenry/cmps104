@@ -88,9 +88,9 @@ NOTSTRINGCON    (\"{SCHARN}*|\"{SCHAR}*{NOTCHAR}{SCHARN}*\")
 {NOTIDENT}      { scanner_badtoken (yytext);
                  return yylval_token (TOK_IDENT); }
 {NOTCHARCON}    { scanner_badtoken (yytext);
-                 return yylval_token (TOK_CHARCON); }
+                  return yylval_token (TOK_CHARCON); }
 {NOTSTRINGCON}  { scanner_badtoken (yytext);
-                 return yylval_token (TOK_STRINGCON); }
+                  return yylval_token (TOK_STRINGCON); }
 
 .               { scanner_badchar (*yytext); }
 
