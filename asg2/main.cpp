@@ -74,7 +74,9 @@ const char *scan_opts (int argc, char **argv) {
 		}
 	}
 	if (optind >= argc) {
-		errprintf ("Usage: %s [-ly] [-@ flag ...] [-D string] filename.oc\n", get_execname());
+		errprintf (
+			"Usage: %s [-ly] [-@ flag ...] [-D string] filename.oc\n",
+			get_execname());
 		exit (get_exitstatus());
 	}
 	return argv[optind];

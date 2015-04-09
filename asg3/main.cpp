@@ -74,7 +74,9 @@ const char *scan_opts (int argc, char **argv) {
 		}
 	}
 	if (optind >= argc) {
-		errprintf ("Usage: %s [-ly] [-@ flag ...] [-D string] filename.oc\n", get_execname());
+		errprintf (
+			"Usage: %s [-ly] [-@ flag ...] [-D string] filename.oc\n",
+			get_execname());
 		exit (get_exitstatus());
 	}
 	return argv[optind];
@@ -111,7 +113,7 @@ int main (int argc, char **argv) {
 	} else {
 		dump_astree (ast_file, yyparse_astree);
 	}
-	//free_ast (yyparse_astree);
+	free_ast (yyparse_astree);
 	yyin_cpp_pclose();
 	dump_stringset (str_file);
 	

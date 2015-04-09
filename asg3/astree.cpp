@@ -46,41 +46,6 @@ astree *adopt1sym (astree *root, astree *child, int symbol) {
 	return root;
 }
 
-astree *adopt1syml (astree *root, astree *child, int symbol) {
-	child->symbol = symbol;
-	root = adopt1 (root, child);
-	return root;
-}
-
-astree *adopt2sym (astree *root, astree *left, astree *right, int symbol) {
-	root->symbol = symbol;
-	adopt1 (root, left);
-	adopt1 (root, right);
-	return root;
-}
-
-astree *adopt2syml (astree *root, astree *left, astree *right, int symbol) {
-	left->symbol = symbol;
-	adopt1 (root, left);
-	adopt1 (root, right);
-	return root;
-}
-
-astree *adopt2symr (astree *root, astree *left, astree *right, int symbol) {
-	right->symbol = symbol;
-	adopt1 (root, left);
-	adopt1 (root, right);
-	return root;
-}
-
-astree *adopt3sym (astree *root, astree *child1, astree *child2, astree *child3, int symbol) {
-	root->symbol = symbol;
-	adopt1 (root, child1);
-	adopt1 (root, child2);
-	adopt1 (root, child3);
-	return root;
-}
-
 astree *adopt3fn (astree *child1, astree *child2, astree *child3) {
 	astree *root = NULL;
 	if (child3->symbol == ';') {
