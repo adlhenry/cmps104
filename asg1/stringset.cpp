@@ -30,7 +30,8 @@ void dump_stringset (FILE *out) {
 					else fprintf (out, "          %4s   ", "");
 			need_index = false;
 			const string *str = &*itor;
-			fprintf (out, "%22lu %p->\"%s\"\n", set.hash_function()(*str),
+			fprintf (out, "%22lu %p->\"%s\"\n",
+					set.hash_function()(*str),
 					str, str->c_str());
 		}
 	}
