@@ -1,0 +1,4 @@
+// Author: Adam Henry, adlhenry@ucsc.edu
+// $Id: README,v 1.1 2015-04-09 18:58:56-07 - - $
+
+Implement the symbol table and type checking.
