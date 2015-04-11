@@ -9,6 +9,7 @@
 using namespace std;
 
 #include "auxlib.h"
+#include "symtable.h"
 
 struct astree {
 	int symbol;					// token code
@@ -16,6 +17,9 @@ struct astree {
 	size_t linenr;				// line number from source code
 	size_t offset;				// offset of token with current line
 	const string *lexinfo;		// pointer to lexical information
+	size_t blocknr;				// block number
+	attr_bitset attributes;		// symbol attributes
+	symbol_ptr type;			// initialized for structs and their fields
 	vector<astree*> children;	// children of this n-way node
 };
 

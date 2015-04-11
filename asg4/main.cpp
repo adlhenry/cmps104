@@ -13,9 +13,10 @@ using namespace std;
 #include <unistd.h>
 
 #include "auxlib.h"
-#include "lyutils.h"
 #include "stringset.h"
+#include "lyutils.h"
 #include "astree.h"
+#include "symtable.h"
 
 const string cpp_name = "/usr/bin/cpp";
 string yyin_cpp_command;

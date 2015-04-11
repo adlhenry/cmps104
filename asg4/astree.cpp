@@ -20,6 +20,9 @@ astree *new_astree (int symbol, int filenr, int linenr, int offset,
 	tree->linenr = linenr;
 	tree->offset = offset;
 	tree->lexinfo = intern_stringset (lexinfo);
+	tree->blocknr = 0;
+	tree->attributes = 0;
+	tree->type = NULL;
 	DEBUGF ('f', "astree %p->{%d:%d.%d: %s: \"%s\"}\n",
 			tree, tree->filenr, tree->linenr, tree->offset,
 			get_yytname (tree->symbol), tree->lexinfo->c_str());
@@ -71,8 +74,9 @@ astree *change_sym (astree *root, int symbol) {
 static void dump_node (FILE *outfile, astree *node) {
 	const char *tname = get_yytname (node->symbol);
 	if (strstr (tname, "TOK_") == tname) tname += 4;
-	fprintf (outfile, "%s \"%s\" %ld.%ld.%ld", tname,
-			node->lexinfo->c_str(), node->filenr, node->linenr, node->offset);
+	fprintf (outfile, "%s \"%s\" (%ld.%ld.%ld) {%ld} %s", tname,
+		node->lexinfo->c_str(), node->filenr, node->linenr, node->offset,
+		node->blocknr, "node->attributes");
 }
 
 static void dump_astree_rec (FILE *outfile, astree *root, int depth) {
