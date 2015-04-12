@@ -112,6 +112,7 @@ int main (int argc, char **argv) {
 	if (parsecode) {
 		errprintf ("%: parse failed (%d)\n", parsecode);
 	} else {
+		dump_symtable();
 		dump_astree (ast_file, yyparse_astree);
 	}
 	free_ast (yyparse_astree);
