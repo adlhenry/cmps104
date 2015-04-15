@@ -87,6 +87,7 @@ void intern_symtable (const string *key, symbol *val) {
 		sym_print (key, val);
 	} else {
 		if ((*table)[key] != NULL) {
+			// Check existing prototype against function
 			errprintf (
 				"%: identifier previously declared: %s (%ld.%ld.%ld)\n",
 				key->c_str(), val->filenr, val->linenr, val->offset);
@@ -100,8 +101,10 @@ void intern_symtable (const string *key, symbol *val) {
 symbol *define_ident (astree *type, int attr) {
 	attr_bitset attributes = 0;
 	if (attr) attributes[attr] = 1;
-	attributes[ATTR_variable] = 1;
-	attributes[ATTR_lval] = 1;
+	if (!attributes[ATTR_function]) {
+		attributes[ATTR_variable] = 1;
+		attributes[ATTR_lval] = 1;
+	}
 	astree *ident = type->children[0];
 	if (type->symbol == TOK_ARRAY) {
 		attributes[ATTR_array] = 1;
@@ -111,10 +114,10 @@ symbol *define_ident (astree *type, int attr) {
 	attributes[attr_type[type->symbol]] = 1;
 	
 	const string *key = ident->lexinfo;
-	symbol *var = new_symbol (ident);
-	var->attributes = attributes;
-	intern_symtable (key, var);
-	return var;
+	symbol *sym = new_symbol (ident);
+	sym->attributes = attributes;
+	intern_symtable (key, sym);
+	return sym;
 }
 
 void define_struct () {
@@ -122,27 +125,10 @@ void define_struct () {
 }
 
 void define_func (astree *node) {
-	attr_bitset attributes = 0;
-	attributes[ATTR_function] = 1;
-	astree *type = node->children[0];
-	astree *ident = type->children[0];
-	if (type->symbol == TOK_ARRAY) {
-		attributes[ATTR_array] = 1;
-		type = type->children[0];
-		ident = type->children[1];
-	}
-	attributes[attr_type[type->symbol]] = 1;
-	
-	const string *key = ident->lexinfo;
-	symbol *func = new_symbol (ident);
-	func->attributes = attributes;
-	intern_symtable (key, func);
-	
+	symbol *last = define_ident (node->children[0], ATTR_function);
 	new_block();
 	astree *param = node->children[1];
-	symbol *last = define_ident (param->children[0], ATTR_param);
-	func->parameters = last;
-	for (size_t child = 1; child < param->children.size(); child++) {
+	for (size_t child = 0; child < param->children.size(); child++) {
 		last->parameters = 
 		define_ident (param->children[child], ATTR_param);
 		last = last->parameters;
