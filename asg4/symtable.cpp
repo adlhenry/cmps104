@@ -12,13 +12,13 @@ using namespace std;
 #include "astree.h"
 #include "symtable.h"
 
+symbol_table *structs = new symbol_table();
 symbol_table *idents;
-symbol_table *structs;
 
-vector<symbol_table*> symbol_stack;
-vector<size_t> block_stack;
-size_t next_block = 0;
-size_t depth = 0;
+vector<symbol_table*> symbol_stack {NULL};
+vector<size_t> block_stack {0};
+size_t next_block = 1, depth = 0;
+int need_line = 0;
 
 const char *attr_string[] = { "void", "bool", "char", "int", "null",
 	"string", "struct", "array", "function", "variable",
@@ -68,7 +68,11 @@ void attr_print (attr_bitset attributes) {
 }
 
 void sym_print (const string *name, symbol *sym) {
-	for (size_t i = 1; i < depth; i++) {
+	if (sym->blocknr == 0 && !sym->attributes[ATTR_field]) {
+		if (need_line) printf("\n");
+		need_line = 1;
+	}
+	for (size_t i = 0; i < depth; i++) {
 		printf ("   ");
 	}
 	printf ("%s (%ld.%ld.%ld) {%ld} ", name->c_str(), sym->filenr,
@@ -120,8 +124,54 @@ symbol *define_ident (astree *type, int attr) {
 	return sym;
 }
 
-void define_struct () {
+symbol_entry define_ident2 (astree *type, int attr) {
+	attr_bitset attributes = 0;
+	if (attr) attributes[attr] = 1;
+	if (!attributes[ATTR_function] && !attributes[ATTR_field] ) {
+		attributes[ATTR_variable] = 1;
+		attributes[ATTR_lval] = 1;
+	}
+	astree *ident = type->children[0];
+	if (type->symbol == TOK_ARRAY) {
+		attributes[ATTR_array] = 1;
+		type = type->children[0];
+		ident = type->children[1];
+	}
+	attributes[attr_type[type->symbol]] = 1;
 	
+	const string *key = ident->lexinfo;
+	symbol *sym = new_symbol (ident);
+	sym->attributes = attributes;
+	intern_symtable (key, sym);
+	return {key, sym};
+}
+
+void define_struct (astree *node) {
+	attr_bitset attributes = 0;
+	attributes[ATTR_struct] = 1;
+	attributes[ATTR_typeid] = 1;
+	astree *type_id = node->children[0];
+	const string *key = type_id->lexinfo;
+	symbol *val = new_symbol (type_id);
+	val->attributes = attributes;
+	if ((*structs)[key] != NULL) {
+		errprintf (
+			"%: identifier previously declared: %s (%ld.%ld.%ld)\n",
+			key->c_str(), val->filenr, val->linenr, val->offset);
+	} else {
+		(*structs)[key] = val;
+		sym_print (key, val);
+	}
+	if (node->children.size() > 1) {
+		symbol_table *fields = new symbol_table();
+		val->fields = fields;
+		depth++;
+		for (size_t child = 1; child < node->children.size(); child++) {
+			(*fields).insert 
+			(define_ident2 (node->children[child], ATTR_field));
+		}
+		depth--;
+	}
 }
 
 void define_func (astree *node) {
@@ -157,16 +207,19 @@ static int scan_node (astree *node) {
 	int block = 0;
 	switch (node->symbol) {
 		case TOK_STRUCT:
+			define_struct (node);
 			break;
 		case TOK_BLOCK:
-			new_block();
 			block = 1;
+			new_block();
 			break;
 		case TOK_FUNCTION:
 			block = 1;
 			define_func (node);
 			break;
 		case TOK_PROTOTYPE:
+			block = 1;
+			define_func (node);
 			break;
 		case TOK_VARDECL:
 			define_ident (node->children[0], 0);
@@ -188,6 +241,5 @@ static void scan_astree (astree *root) {
 }
 
 void dump_symtable () {
-	new_block();
 	scan_astree (yyparse_astree);
 }

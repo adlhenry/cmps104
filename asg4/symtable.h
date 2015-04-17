@@ -33,6 +33,6 @@ struct symbol {
 	symbol *parameters;
 };
 
-void dump_symtable();
+void dump_symtable ();
 
 #endif

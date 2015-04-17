@@ -87,7 +87,7 @@ string str_basename (const char *filename) {
 	string str_basename = basename (filename);
 	size_t index = str_basename.find (".oc");
 	if (index == string::npos) {
-		errprintf ("%: missing or improper suffix %s\n", 
+		errprintf ("%: missing or improper suffix: %s\n",
 					str_basename.c_str());
 		exit (get_exitstatus());
 	}
