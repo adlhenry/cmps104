@@ -19,7 +19,7 @@ struct astree {
 	const string *lexinfo;		// pointer to lexical information
 	size_t blocknr;				// block number
 	attr_bitset attributes;		// symbol attributes
-	symbol_ptr type;			// initialized for structs and their fields
+	symbol_entry type;			// initialized for structs and their fields
 	vector<astree*> children;	// children of this n-way node
 };
 

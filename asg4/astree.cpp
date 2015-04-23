@@ -22,7 +22,7 @@ astree *new_astree (int symbol, int filenr, int linenr, int offset,
 	tree->lexinfo = intern_stringset (lexinfo);
 	tree->blocknr = 0;
 	tree->attributes = 0;
-	tree->type = NULL;
+	tree->type = {NULL, NULL};
 	DEBUGF ('f', "astree %p->{%d:%d.%d: %s: \"%s\"}\n",
 			tree, tree->filenr, tree->linenr, tree->offset,
 			get_yytname (tree->symbol), tree->lexinfo->c_str());

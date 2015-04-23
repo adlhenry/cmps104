@@ -21,9 +21,11 @@ vector<size_t> block_stack {0};
 size_t next_block = 1, depth = 0;
 int need_line = 0;
 
+FILE *out = NULL;
+
 const char *attr_string[] = { "void", "bool", "char", "int", "null",
-	"string", "struct", "array", "function", "variable",
-	"field", "typeid", "param", "lval", "const",
+	"string", "", "array", "function", "variable",
+	"field", "", "param", "lval", "const",
 	"vreg", "vaddr"
 };
 
@@ -32,14 +34,18 @@ unordered_map<int,int> attr_type = {{TOK_VOID, ATTR_void}, {TOK_BOOL, ATTR_bool}
 	{TOK_TYPEID, ATTR_typeid}
 };
 
-symbol *new_symbol (astree *node) {
-	symbol *sym = new symbol();
-	sym->attributes = 0;
-	sym->fields = NULL;
+void set_values (symbol *sym, astree *node) {
 	sym->filenr = node->filenr;
 	sym->linenr = node->linenr;
 	sym->offset = node->offset;
 	sym->blocknr = block_stack.back();
+}
+
+symbol *new_symbol (astree *node) {
+	symbol *sym = new symbol();
+	sym->attributes = 0;
+	set_values (sym, node);
+	sym->fields = NULL;
 	sym->parameters = NULL;
 	return sym;
 }
@@ -62,8 +68,12 @@ void attr_print (attr_bitset attributes) {
 	int need_space = 0;
 	for (size_t attr = 0; attr < attributes.size(); attr++) {
 		if (attributes[attr]) {
-			if (need_space) printf (" ");
-			printf ("%s", attr_string[attr]);
+			if (need_space) fprintf (out, " ");
+			if (attr == ATTR_typeid) {
+				// print struct "type_name"
+			} else {
+				fprintf (out, "%s", attr_string[attr]);
+			}
 			need_space = 1;
 		}
 	}
@@ -75,12 +85,34 @@ void sym_print (const string *name, symbol *sym) {
 		need_line = 1;
 	}
 	for (size_t i = 0; i < depth; i++) {
-		printf ("   ");
+		fprintf (out, "   ");
 	}
-	printf ("%s (%ld.%ld.%ld) {%ld} ", name->c_str(), sym->filenr,
+	fprintf (out, "%s (%ld.%ld.%ld) {%ld} ", name->c_str(), sym->filenr,
 			sym->linenr, sym->offset, sym->blocknr);
 	attr_print (sym->attributes);
-	printf ("\n");
+	fprintf (out, "\n");
+}
+
+template <typename T>
+void err_print (const string *key, T *val, char err) {
+	string error = "%: ";
+	switch (err) {
+		case 'f':
+			error += "declared function differs from prototype";
+			break;
+		case 'i':
+			error += "identifier previously declared";
+			break;
+		case 't':
+			error += "reference to incomplete type";
+			break;
+		case 'u':
+			error += "reference to undeclared identifier";
+			break;
+	}
+	error += ": %s (%ld.%ld.%ld)\n";
+	errprintf (error.c_str(), key->c_str(), 
+		val->filenr, val->linenr, val->offset);
 }
 
 void intern_symtable (const string *key, symbol *val) {
@@ -99,9 +131,7 @@ void intern_symtable (const string *key, symbol *val) {
 				proto = (*table)[key];
 				sym_print (key, val);
 			} else {
-				errprintf (
-					"%: identifier previously declared: %s (%ld.%ld.%ld)\n",
-					key->c_str(), val->filenr, val->linenr, val->offset);
+				err_print (key, val, 'i');
 			}
 		} else {
 			(*table)[key] = val;
@@ -110,7 +140,7 @@ void intern_symtable (const string *key, symbol *val) {
 	}
 }
 
-void typeid_check (astree *type, attr_bitset attributes) {
+symbol_entry typeid_check (astree *type, attr_bitset attributes) {
 	const string *key = type->lexinfo;
 	if ((*structs)[key] == NULL) {
 		symbol *val = new_symbol (type);
@@ -118,11 +148,10 @@ void typeid_check (astree *type, attr_bitset attributes) {
 	}
 	if ((*structs)[key]->fields == NULL) {
 		if (!attributes[ATTR_field]) {
-			errprintf (
-				"%: reference to incomplete type: %s (%ld.%ld.%ld)\n",
-				key->c_str(), type->filenr, type->linenr, type->offset);
+			err_print (key, type, 't');
 		}
 	}
+	return {key, (*structs)[key]};
 }
 
 symbol_entry define_ident (astree *type, int attr) {
@@ -140,12 +169,14 @@ symbol_entry define_ident (astree *type, int attr) {
 	}
 	attributes[attr_type[type->symbol]] = 1;
 	if (attributes[ATTR_typeid]) {
-		typeid_check (type, attributes);
+		ident->type = typeid_check (type, attributes);
 	}
 	const string *key = ident->lexinfo;
 	symbol *val = new_symbol (ident);
 	val->attributes = attributes;
-	intern_symtable (key, val);
+	if (!attributes[ATTR_field]) {
+		intern_symtable (key, val);
+	}
 	return {key, val};
 }
 
@@ -155,31 +186,37 @@ void define_struct (astree *node) {
 	attributes[ATTR_typeid] = 1;
 	astree *type_id = node->children[0];
 	const string *key = type_id->lexinfo;
-	symbol *val = new_symbol (type_id);
-	val->attributes = attributes;
-	if ((*structs)[key] != NULL && (*structs)[key]->fields != NULL) {
-		errprintf (
-			"%: identifier previously declared: %s (%ld.%ld.%ld)\n",
-			key->c_str(), val->filenr, val->linenr, val->offset);
-	} else {
-		delete (*structs)[key];
+	
+	symbol *val = (*structs)[key];
+	if (val == NULL) {
+		val = new_symbol (type_id);
 		(*structs)[key] = val;
-		sym_print (key, val);
+	} else if (val->fields == NULL) {
+		set_values (val, type_id);
 	}
+	if (val->fields != NULL) {
+		err_print (key, type_id, 'i');
+		return;
+	}
+	val->attributes = attributes;
+	sym_print (key, val);
+	
 	symbol_table *fields = new symbol_table();
 	val->fields = fields;
 	depth++;
 	for (size_t child = 1; child < node->children.size(); child++) {
-		(*fields).insert 
-		(define_ident (node->children[child], ATTR_field));
+		symbol_entry entry = 
+			define_ident (node->children[child], ATTR_field);
+		key = entry.first;
+		val = entry.second;
+		if ((*fields)[key] == NULL) {
+			fields->insert (entry);
+			sym_print (key, val);
+		} else {
+			err_print (key, val, 'i');
+		}
 	}
 	depth--;
-}
-
-void err_func (const string *key, symbol *sym) {
-	errprintf (
-		"%: declared function differs from prototype: %s (%ld.%ld.%ld)\n",
-		key->c_str(), sym->filenr, sym->linenr, sym->offset);
 }
 
 void proto_check (const string *key, symbol *last, astree *param) {
@@ -203,17 +240,17 @@ void proto_check (const string *key, symbol *last, astree *param) {
 		if (p_param != NULL) {
 			if (((*p_table)[ent.first] != p_param)
 			| (p_param->attributes != last->attributes)) {
-				err_func (key, last);
+				err_print (key, last, 'f');
 				break;
 			}
 			p_param = p_param->parameters;
 		} else {
-			err_func (key, last);
+			err_print (key, last, 'f');
 			break;
 		}
 	}
-	if (p_param != NULL) err_func (key, last);
-	proto->attributes[ATTR_function];
+	if (p_param != NULL) err_print (key, last, 'f');
+	proto->attributes[ATTR_function] = 1;
 	proto = NULL;
 }
 
@@ -231,6 +268,13 @@ void define_func (astree *node, int attr) {
 			last = last->parameters;
 		}
 	}
+	if (attr == ATTR_function) {
+		astree *block = node->children[2];
+		for (size_t child = 0; child < block->children.size(); child++) {
+			astree *stmt = block->children[child];
+			if (stmt->symbol == TOK_VARDECL) fprintf (out, "\n");
+		}
+	}
 }
 
 void ref_ident (astree *node) {
@@ -244,11 +288,7 @@ void ref_ident (astree *node) {
 			}
 		}
 	}
-	if (!defined) {
-		errprintf (
-			"%: reference to undeclared identifier: %s (%ld.%ld.%ld)\n",
-			key->c_str(), node->filenr, node->linenr, node->offset);
-	}
+	if (!defined) err_print (key, node, 'u');
 }
 
 static int scan_node (astree *node) {
@@ -291,6 +331,7 @@ static void scan_astree (astree *root) {
 	if (block) exit_block();
 }
 
-void dump_symtable () {
+void dump_symtable (FILE *sym_file) {
+	out = sym_file;
 	scan_astree (yyparse_astree);
 }

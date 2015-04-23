@@ -13,7 +13,6 @@ using namespace std;
 #include "auxlib.h"
 
 struct symbol;
-typedef symbol *symbol_ptr;
 
 enum { ATTR_void, ATTR_bool, ATTR_char, ATTR_int, ATTR_null,
 	ATTR_string, ATTR_struct, ATTR_array, ATTR_function, ATTR_variable,
@@ -33,6 +32,6 @@ struct symbol {
 	symbol *parameters;
 };
 
-void dump_symtable ();
+void dump_symtable (FILE *sym_file);
 
 #endif
