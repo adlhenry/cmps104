@@ -113,7 +113,8 @@ int main (int argc, char **argv) {
 		errprintf ("%: parse failed (%d)\n", parsecode);
 	} else {
 		dump_symtable (stdout);
-		dump_astree (ast_file, yyparse_astree);
+		printf ("\n");
+		dump_astree (stdout, yyparse_astree);
 	}
 	free_ast (yyparse_astree);
 	yyin_cpp_pclose();

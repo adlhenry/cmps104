@@ -8,9 +8,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "astree.h"
-#include "stringset.h"
 #include "lyutils.h"
+#include "stringset.h"
+#include "astree.h"
 
 astree *new_astree (int symbol, int filenr, int linenr, int offset,
 					const char *lexinfo) {
@@ -74,9 +74,19 @@ astree *change_sym (astree *root, int symbol) {
 static void dump_node (FILE *outfile, astree *node) {
 	const char *tname = get_yytname (node->symbol);
 	if (strstr (tname, "TOK_") == tname) tname += 4;
-	fprintf (outfile, "%s \"%s\" (%ld.%ld.%ld) {%ld} %s", tname,
+	fprintf (outfile, "%s \"%s\" (%ld.%ld.%ld) {%ld} ", tname,
 		node->lexinfo->c_str(), node->filenr, node->linenr, node->offset,
-		node->blocknr, "node->attributes");
+		node->blocknr);
+	attr_print (node->type.first, node->attributes);
+	if (node->symbol == TOK_IDENT) {
+		symbol *sym = node->type.second;
+		if (sym != NULL) {
+			fprintf (outfile, " (%ld.%ld.%ld)", 
+				sym->filenr, sym->linenr, sym->offset);
+		} else {
+			fprintf (outfile, "(not declared)");
+		}
+	}
 }
 
 static void dump_astree_rec (FILE *outfile, astree *root, int depth) {

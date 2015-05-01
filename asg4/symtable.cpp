@@ -47,6 +47,7 @@ symbol *new_symbol (astree *node) {
 	set_values (sym, node);
 	sym->fields = NULL;
 	sym->parameters = NULL;
+	sym->type_name = NULL;
 	return sym;
 }
 
@@ -64,15 +65,14 @@ void exit_block () {
 	symbol_stack.pop_back();
 }
 
-void attr_print (attr_bitset attributes) {
+void attr_print (const string *type_name, attr_bitset attributes) {
 	int need_space = 0;
 	for (size_t attr = 0; attr < attributes.size(); attr++) {
 		if (attributes[attr]) {
 			if (need_space) fprintf (out, " ");
-			if (attr == ATTR_typeid) {
-				// print struct "type_name"
-			} else {
-				fprintf (out, "%s", attr_string[attr]);
+			fprintf (out, "%s", attr_string[attr]);
+			if (attr == ATTR_typeid && type_name != NULL) {
+				fprintf (out, "struct \"%s\"", type_name->c_str());
 			}
 			need_space = 1;
 		}
@@ -89,7 +89,7 @@ void sym_print (const string *name, symbol *sym) {
 	}
 	fprintf (out, "%s (%ld.%ld.%ld) {%ld} ", name->c_str(), sym->filenr,
 			sym->linenr, sym->offset, sym->blocknr);
-	attr_print (sym->attributes);
+	attr_print (sym->type_name, sym->attributes);
 	fprintf (out, "\n");
 }
 
@@ -170,10 +170,16 @@ symbol_entry define_ident (astree *type, int attr) {
 	attributes[attr_type[type->symbol]] = 1;
 	if (attributes[ATTR_typeid]) {
 		ident->type = typeid_check (type, attributes);
-	}
+	}	
 	const string *key = ident->lexinfo;
 	symbol *val = new_symbol (ident);
 	val->attributes = attributes;
+	
+	val->type_name = ident->type.first;
+	
+	ident->blocknr = block_stack.back();
+	ident->attributes = val->attributes;
+	
 	if (!attributes[ATTR_field]) {
 		intern_symtable (key, val);
 	}
@@ -256,7 +262,7 @@ void proto_check (const string *key, symbol *last, astree *param) {
 
 void define_func (astree *node, int attr) {
 	symbol_entry ent = define_ident (node->children[0], attr);
-	symbol *last = ent.second;
+	symbol *last = ent.second;	
 	new_block();
 	astree *param = node->children[1];
 	if (proto != NULL) {
@@ -285,6 +291,12 @@ void ref_ident (astree *node) {
 		if (table != NULL) {
 			if ((*table)[key] != NULL) {
 				defined = 1;
+				
+				symbol *val = (*table)[key];
+				node->blocknr = block_stack.back();
+				node->attributes = val->attributes;
+				node->type = {val->type_name, val};
+				
 			}
 		}
 	}
@@ -300,6 +312,7 @@ static int scan_node (astree *node) {
 		case TOK_BLOCK:
 			block = 1;
 			new_block();
+			node->blocknr = block_stack.back();
 			break;
 		case TOK_FUNCTION:
 			block = 1;

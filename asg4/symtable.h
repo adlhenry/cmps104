@@ -30,7 +30,10 @@ struct symbol {
 	size_t filenr, linenr, offset;
 	size_t blocknr;
 	symbol *parameters;
+	const string *type_name;
 };
+
+void attr_print (const string *type_name, attr_bitset attributes);
 
 void dump_symtable (FILE *sym_file);
 
