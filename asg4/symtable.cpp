@@ -31,8 +31,25 @@ const char *attr_string[] = { "void", "bool", "char", "int", "null",
 
 unordered_map<int,int> attr_type = {{TOK_VOID, ATTR_void}, {TOK_BOOL, ATTR_bool},
 	{TOK_CHAR, ATTR_char}, {TOK_INT, ATTR_int}, {TOK_STRING, ATTR_string},
-	{TOK_TYPEID, ATTR_typeid}
+	{TOK_TYPEID, ATTR_typeid}, {TOK_INTCON, ATTR_const}, {TOK_CHARCON, ATTR_const},
+	{TOK_STRINGCON, ATTR_const}, {TOK_FALSE, ATTR_const}, {TOK_TRUE, ATTR_const},
+	{TOK_NULL, ATTR_const}
 };
+
+void set_ast_node (astree *node, symbol *val) {
+	if (val != NULL) {
+		node->blocknr = block_stack.back();
+		node->attributes = val->attributes;
+		node->type = {val->type_name, val};
+	} else {
+		if (node->attributes != 0) return;
+		node->blocknr = block_stack.back();
+		attr_bitset attributes = 0;
+		int attr = attr_type[node->symbol];
+		if (attr) attributes[attr] = 1;
+		node->attributes = attributes;
+	}
+}
 
 void set_values (symbol *sym, astree *node) {
 	sym->filenr = node->filenr;
@@ -65,18 +82,22 @@ void exit_block () {
 	symbol_stack.pop_back();
 }
 
-void attr_print (const string *type_name, attr_bitset attributes) {
+const char *get_attrstring (const string *type_name,
+	attr_bitset attributes) {
 	int need_space = 0;
+	string attrstring = "";
 	for (size_t attr = 0; attr < attributes.size(); attr++) {
-		if (attributes[attr]) {
-			if (need_space) fprintf (out, " ");
-			fprintf (out, "%s", attr_string[attr]);
+		if (attributes[attr] && attr != ATTR_struct) {
+			if (need_space) attrstring += " ";
+			attrstring += attr_string[attr];
 			if (attr == ATTR_typeid && type_name != NULL) {
-				fprintf (out, "struct \"%s\"", type_name->c_str());
+				attrstring += "struct \""
+					+ string (type_name->c_str()) + "\"";
 			}
 			need_space = 1;
 		}
 	}
+	return attrstring.c_str();
 }
 
 void sym_print (const string *name, symbol *sym) {
@@ -87,10 +108,9 @@ void sym_print (const string *name, symbol *sym) {
 	for (size_t i = 0; i < depth; i++) {
 		fprintf (out, "   ");
 	}
-	fprintf (out, "%s (%ld.%ld.%ld) {%ld} ", name->c_str(), sym->filenr,
-			sym->linenr, sym->offset, sym->blocknr);
-	attr_print (sym->type_name, sym->attributes);
-	fprintf (out, "\n");
+	fprintf (out, "%s (%ld.%ld.%ld) {%ld} %s\n", name->c_str(), sym->filenr,
+		sym->linenr, sym->offset, sym->blocknr,
+		get_attrstring (sym->type_name, sym->attributes));
 }
 
 template <typename T>
@@ -170,11 +190,11 @@ symbol_entry define_ident (astree *type, int attr) {
 	attributes[attr_type[type->symbol]] = 1;
 	if (attributes[ATTR_typeid]) {
 		ident->type = typeid_check (type, attributes);
-	}	
+	}
 	const string *key = ident->lexinfo;
 	symbol *val = new_symbol (ident);
-	val->attributes = attributes;
 	
+	val->attributes = attributes;
 	val->type_name = ident->type.first;
 	
 	ident->blocknr = block_stack.back();
@@ -204,7 +224,11 @@ void define_struct (astree *node) {
 		err_print (key, type_id, 'i');
 		return;
 	}
+	
 	val->attributes = attributes;
+	val->type_name = key;
+	set_ast_node (type_id, val);
+	
 	sym_print (key, val);
 	
 	symbol_table *fields = new symbol_table();
@@ -262,7 +286,7 @@ void proto_check (const string *key, symbol *last, astree *param) {
 
 void define_func (astree *node, int attr) {
 	symbol_entry ent = define_ident (node->children[0], attr);
-	symbol *last = ent.second;	
+	symbol *last = ent.second;
 	new_block();
 	astree *param = node->children[1];
 	if (proto != NULL) {
@@ -291,16 +315,14 @@ void ref_ident (astree *node) {
 		if (table != NULL) {
 			if ((*table)[key] != NULL) {
 				defined = 1;
-				
-				symbol *val = (*table)[key];
-				node->blocknr = block_stack.back();
-				node->attributes = val->attributes;
-				node->type = {val->type_name, val};
-				
+				set_ast_node (node, (*table)[key]);
 			}
 		}
 	}
-	if (!defined) err_print (key, node, 'u');
+	if (!defined) {
+		node->blocknr = block_stack.back();
+		err_print (key, node, 'u');
+	}
 }
 
 static int scan_node (astree *node) {
@@ -330,6 +352,9 @@ static int scan_node (astree *node) {
 			break;
 		case TOK_NEW:
 			typeid_check (node->children[0], 0);
+			break;
+		default:
+			set_ast_node (node, NULL);
 			break;
 	}
 	return block;

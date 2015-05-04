@@ -33,8 +33,8 @@ struct symbol {
 	const string *type_name;
 };
 
-void attr_print (const string *type_name, attr_bitset attributes);
-
+const char *get_attrstring (const string *type_name,
+	attr_bitset attributes);
 void dump_symtable (FILE *sym_file);
 
 #endif
