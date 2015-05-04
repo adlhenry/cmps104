@@ -11,6 +11,7 @@ using namespace std;
 #include "lyutils.h"
 #include "astree.h"
 #include "symtable.h"
+#include "typecheck.h"
 
 symbol_table *structs = new symbol_table();
 vector<symbol_table*> idents;
@@ -29,12 +30,51 @@ const char *attr_string[] = { "void", "bool", "char", "int", "null",
 	"vreg", "vaddr"
 };
 
-unordered_map<int,int> attr_type = {{TOK_VOID, ATTR_void}, {TOK_BOOL, ATTR_bool},
-	{TOK_CHAR, ATTR_char}, {TOK_INT, ATTR_int}, {TOK_STRING, ATTR_string},
-	{TOK_TYPEID, ATTR_typeid}, {TOK_INTCON, ATTR_const}, {TOK_CHARCON, ATTR_const},
-	{TOK_STRINGCON, ATTR_const}, {TOK_FALSE, ATTR_const}, {TOK_TRUE, ATTR_const},
-	{TOK_NULL, ATTR_const}
+unordered_map<int,int> attr_type = {{TOK_VOID, ATTR_void},
+	{TOK_BOOL, ATTR_bool}, {TOK_CHAR, ATTR_char}, {TOK_INT, ATTR_int},
+	{TOK_STRING, ATTR_string}, {TOK_TYPEID, ATTR_typeid}
 };
+
+unordered_map<int,vector<int>> sym_attrs = {
+	{'=', {ATTR_vreg}},
+	{TOK_EQ, {ATTR_bool, ATTR_vreg}},
+	{TOK_NE, {ATTR_bool, ATTR_vreg}},
+	{TOK_LT, {ATTR_bool, ATTR_vreg}},
+	{TOK_LE, {ATTR_bool, ATTR_vreg}},
+	{TOK_GT, {ATTR_bool, ATTR_vreg}},
+	{TOK_GE, {ATTR_bool, ATTR_vreg}},
+	{'+', {ATTR_int, ATTR_vreg}},
+	{'-', {ATTR_int, ATTR_vreg}},
+	{'*', {ATTR_int, ATTR_vreg}},
+	{'/', {ATTR_int, ATTR_vreg}},
+	{'%', {ATTR_int, ATTR_vreg}},
+	{TOK_POS, {ATTR_int, ATTR_vreg}},
+	{TOK_NEG, {ATTR_int, ATTR_vreg}},
+	{'!', {ATTR_bool, ATTR_vreg}},
+	{TOK_ORD, {ATTR_int, ATTR_vreg}},
+	{TOK_CHR, {ATTR_char, ATTR_vreg}},
+	{TOK_NEW, {ATTR_vreg}},
+	{TOK_NEWSTRING, {ATTR_string, ATTR_vreg}},
+	{TOK_NEWARRAY, {ATTR_array, ATTR_vreg}},
+	{TOK_CALL, {ATTR_vreg}},
+	{TOK_INDEX, {ATTR_vaddr, ATTR_lval}},
+	{'.', {ATTR_vaddr, ATTR_lval}},
+	{TOK_INTCON, {ATTR_int, ATTR_const}},
+	{TOK_CHARCON, {ATTR_char, ATTR_const}},
+	{TOK_STRINGCON, {ATTR_string, ATTR_const}},
+	{TOK_FALSE, {ATTR_bool, ATTR_const}},
+	{TOK_TRUE, {ATTR_bool, ATTR_const}},
+	{TOK_NULL, {ATTR_null, ATTR_const}}
+};
+
+attr_bitset get_attrs (int symbol) {
+	attr_bitset attributes = 0;
+	vector<int> attrs = sym_attrs[symbol];
+	for (size_t i = 0; i < attrs.size(); i++) {
+		attributes[attrs[i]] = 1;
+	}
+	return attributes;
+}
 
 void set_ast_node (astree *node, symbol *val) {
 	if (val != NULL) {
@@ -44,10 +84,7 @@ void set_ast_node (astree *node, symbol *val) {
 	} else {
 		if (node->attributes != 0) return;
 		node->blocknr = block_stack.back();
-		attr_bitset attributes = 0;
-		int attr = attr_type[node->symbol];
-		if (attr) attributes[attr] = 1;
-		node->attributes = attributes;
+		node->attributes = get_attrs (node->symbol);
 	}
 }
 
@@ -108,8 +145,8 @@ void sym_print (const string *name, symbol *sym) {
 	for (size_t i = 0; i < depth; i++) {
 		fprintf (out, "   ");
 	}
-	fprintf (out, "%s (%ld.%ld.%ld) {%ld} %s\n", name->c_str(), sym->filenr,
-		sym->linenr, sym->offset, sym->blocknr,
+	fprintf (out, "%s (%ld.%ld.%ld) {%ld} %s\n", name->c_str(),
+		sym->filenr, sym->linenr, sym->offset, sym->blocknr,
 		get_attrstring (sym->type_name, sym->attributes));
 }
 
@@ -372,4 +409,5 @@ static void scan_astree (astree *root) {
 void dump_symtable (FILE *sym_file) {
 	out = sym_file;
 	scan_astree (yyparse_astree);
+	//type_check();
 }

@@ -10,8 +10,9 @@ GCC       = g++ -g -O0 -Wall -Wextra -std=gnu++0x
 MKDEPS    = g++ -MM -std=gnu++0x
 
 CSOURCE   = main.cpp auxlib.cpp lyutils.cpp stringset.cpp astree.cpp \
-            symtable.cpp
-CHEADER   = auxlib.h lyutils.h stringset.h astree.h symtable.h
+			symtable.cpp typecheck.cpp
+CHEADER   = auxlib.h lyutils.h stringset.h astree.h symtable.h \
+			typecheck.h
 LSOURCE   = scanner.l
 YSOURCE   = parser.y
 CLGEN     = yylex.cpp
