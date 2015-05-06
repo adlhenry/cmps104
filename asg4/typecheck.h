@@ -10,6 +10,6 @@
 #include <utility>
 using namespace std;
 
-void type_check ();
+void type_check (astree *node);
 
 #endif

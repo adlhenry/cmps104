@@ -104,6 +104,7 @@ int main (int argc, char **argv) {
 	FILE *str_file = file_open (basename + ".str", "w");
 	FILE *tok_file = file_open (basename + ".tok", "w");
 	FILE *ast_file = file_open (basename + ".ast", "w");
+	FILE *sym_file = file_open (basename + ".sym", "w");
 	
 	yyin_cpp_popen (filename);
 	scanner_newfilename (filename);
@@ -112,14 +113,14 @@ int main (int argc, char **argv) {
 	if (parsecode) {
 		errprintf ("%: parse failed (%d)\n", parsecode);
 	} else {
-		dump_symtable (stdout);
-		printf ("\n");
-		dump_astree (stdout, yyparse_astree);
+		dump_symtable (sym_file);
+		dump_astree (ast_file, yyparse_astree);
 	}
 	free_ast (yyparse_astree);
 	yyin_cpp_pclose();
 	dump_stringset (str_file);
 	
+	fclose (sym_file);
 	fclose (ast_file);
 	fclose (tok_file);
 	fclose (str_file);

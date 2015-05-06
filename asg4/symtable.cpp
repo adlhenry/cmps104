@@ -5,6 +5,7 @@
 #include <vector>
 using namespace std;
 
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -134,12 +135,12 @@ const char *get_attrstring (const string *type_name,
 			need_space = 1;
 		}
 	}
-	return attrstring.c_str();
+	return strdup (attrstring.c_str());
 }
 
 void sym_print (const string *name, symbol *sym) {
 	if (sym->blocknr == 0 && !sym->attributes[ATTR_field]) {
-		if (need_line) printf("\n");
+		if (need_line) fprintf (out, "\n");
 		need_line = 1;
 	}
 	for (size_t i = 0; i < depth; i++) {
@@ -362,7 +363,7 @@ void ref_ident (astree *node) {
 	}
 }
 
-static int scan_node (astree *node) {
+static int define (astree *node) {
 	int block = 0;
 	switch (node->symbol) {
 		case TOK_STRUCT:
@@ -399,15 +400,15 @@ static int scan_node (astree *node) {
 
 static void scan_astree (astree *root) {
 	if (root == NULL) return;
-	int block = scan_node (root);
+	int block = define (root);
 	for (size_t child = 0; child < root->children.size(); child++) {
 		scan_astree (root->children[child]);
 	}
 	if (block) exit_block();
+	type_check (root);
 }
 
 void dump_symtable (FILE *sym_file) {
 	out = sym_file;
 	scan_astree (yyparse_astree);
-	//type_check();
 }

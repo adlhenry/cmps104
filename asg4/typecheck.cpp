@@ -13,20 +13,27 @@ using namespace std;
 #include "symtable.h"
 #include "typecheck.h"
 
-void err_print (astree *node, int type1, int type2, char err) {
+using type_pair = pair<const string*,attr_bitset>;
+
+void err_print (astree *node, type_pair type1, type_pair type2) {
 	string error = "%: ";
-	switch (err) {
-		case 'v':
-			error += "assignment expects type %d";
-			error += " but operand is of type %d";
-			break;
-	}
-	error += ": %s (%ld.%ld.%ld)\n";
-	errprintf (error.c_str(), type1, type2, node->lexinfo->c_str(),
+	error += "%s expects type %s but operand is of type %s";
+	error += " at (%ld.%ld.%ld)\n";
+	errprintf (error.c_str(), node->lexinfo->c_str(),
+		get_attrstring (type1.first, type1.second),
+		get_attrstring (type2.first, type2.second),
 		node->filenr, node->linenr, node->offset);
 }
 
-void set_vardecl (astree *node) {
+attr_bitset get_type (astree *node) {
+	attr_bitset type = node->attributes;
+	for (size_t attr = ATTR_function; attr < type.size(); attr++) {
+		if (attr != ATTR_typeid) type[attr] = 0;
+	}
+	return type;
+}
+
+void check_vardecl (astree *node) {
 	astree *type = node->children[0];
 	astree *expr = node->children[1];
 	astree *ident = type->children[0];
@@ -34,49 +41,74 @@ void set_vardecl (astree *node) {
 		type = type->children[0];
 		ident = type->children[1];
 	}
-	attr_bitset i_attr = ident->attributes;
-	attr_bitset e_attr = expr->attributes;
-	int i_type = 0;
-	int e_type = 0;
-	for (int attr = 1; attr < ATTR_null; attr++) {
-		if (i_attr[attr]) i_type = attr;
-		if (e_attr[attr]) e_type = attr;
-	}
-	if (i_type != e_type) err_print (node, i_type, e_type, 'v');
-	if (i_attr[ATTR_string]) i_type = ATTR_string;
-	if (e_attr[ATTR_string]) e_type = ATTR_string;
-	if (i_attr[ATTR_typeid]) i_type = ATTR_typeid;
-	if (e_attr[ATTR_typeid]) e_type = ATTR_typeid;
-	if (e_attr[ATTR_null]) e_type = ATTR_null;
+	attr_bitset i_type = get_type (ident);	
+	attr_bitset e_type = get_type (expr);
+	type_pair type1 = {ident->type.first, i_type};
+	type_pair type2 = {expr->type.first, e_type};
 	if (i_type != e_type) {
-		if (e_type != ATTR_null) err_print (node, i_type, e_type, 'v');
-	}
-	if (i_attr[ATTR_array] != e_attr[ATTR_array]) {
-		err_print (node, i_type, e_type, 'v');
-	}
-	if (i_attr[ATTR_typeid]) {
-		if (ident->type.first != expr->type.first) {
-			err_print (node, 0, 0, 'v');
+		if (!i_type[ATTR_string]
+			| !i_type[ATTR_typeid]
+			| !i_type[ATTR_array]) {
+			err_print (node, type1, type2);
+		} else if (!e_type[ATTR_null]) {
+			err_print (node, type1, type2);
+		}
+	} else {
+		if (i_type[ATTR_typeid]
+			&& (ident->type.first != expr->type.first)) {
+			err_print (node, type1, type2);
 		}
 	}
 }
 
-static void scan_node (astree *node) {
+void check_control (astree *node) {
+	astree *expr = node->children[0];
+	attr_bitset c_type = 0;
+	c_type[ATTR_bool] = 1;
+	attr_bitset e_type = get_type (expr);
+	type_pair type1 = {NULL, c_type};
+	type_pair type2 = {expr->type.first, e_type};
+	if (c_type != e_type) {
+		err_print (node, type1, type2);
+	}
+}
+  
+void check_assing (astree *node) {
+	astree *expr1 = node->children[0];
+	astree *expr2 = node->children[1];
+	attr_bitset e1_type = get_type (expr1);	
+	attr_bitset e2_type = get_type (expr2);
+	type_pair type1 = {expr1->type.first, e1_type};
+	type_pair type2 = {expr2->type.first, e2_type};
+	if (!expr1->attributes[ATTR_lval]) {
+		attr_bitset l_type = e1_type;
+		l_type[ATTR_lval] = 1;
+		type2 = type1;
+		type1.second = l_type;
+		err_print (node, type1, type2);
+	} else if (e1_type != e2_type) {
+		err_print (node, type1, type2);
+	}
+	node->attributes |= e1_type;
+	node->type.first = expr1->type.first;
+}
+
+void type_check (astree *node) {
 	switch (node->symbol) {
 		case TOK_VARDECL:
-			set_vardecl (node);
+			check_vardecl (node);
+			break;
+		case TOK_WHILE:
+			check_control (node);
+			break;
+		case TOK_IF:
+			check_control (node);
+			break;
+		case TOK_IFELSE:
+			check_control (node);
+			break;
+		case '=':
+			check_assing (node);
 			break;
 	}
-}
-
-static void scan_astree (astree *root) {
-	if (root == NULL) return;
-	scan_node (root);
-	for (size_t child = 0; child < root->children.size(); child++) {
-		scan_astree (root->children[child]);
-	}
-}
-
-void type_check () {
-	scan_astree (yyparse_astree);
 }
