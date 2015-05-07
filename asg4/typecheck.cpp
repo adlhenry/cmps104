@@ -62,17 +62,17 @@ void check_vardecl (astree *node) {
 }
 
 void check_control (astree *node) {
-	astree *expr = node->children[0];
-	attr_bitset c_type = 0;
-	c_type[ATTR_bool] = 1;
-	attr_bitset e_type = get_type (expr);
-	type_pair type1 = {NULL, c_type};
-	type_pair type2 = {expr->type.first, e_type};
-	if (c_type != e_type) {
-		err_print (node, type1, type2);
+	astree *expr1 = node->children[0];
+	attr_bitset b_type = 0;
+	b_type[ATTR_bool] = 1;
+	attr_bitset e1_type = get_type (expr1);
+	type_pair type0 = {NULL, b_type};
+	type_pair type1 = {expr1->type.first, e1_type};
+	if (e1_type != b_type) {
+		err_print (node, type0, type1);
 	}
 }
-  
+
 void check_assing (astree *node) {
 	astree *expr1 = node->children[0];
 	astree *expr2 = node->children[1];
@@ -93,22 +93,97 @@ void check_assing (astree *node) {
 	node->type.first = expr1->type.first;
 }
 
-void type_check (astree *node) {
-	switch (node->symbol) {
-		case TOK_VARDECL:
-			check_vardecl (node);
-			break;
-		case TOK_WHILE:
-			check_control (node);
-			break;
-		case TOK_IF:
-			check_control (node);
-			break;
-		case TOK_IFELSE:
-			check_control (node);
-			break;
-		case '=':
-			check_assing (node);
-			break;
+void check_eq (astree *node) {
+	astree *expr1 = node->children[0];
+	astree *expr2 = node->children[1];
+	attr_bitset e1_type = get_type (expr1);	
+	attr_bitset e2_type = get_type (expr2);
+	type_pair type1 = {expr1->type.first, e1_type};
+	type_pair type2 = {expr2->type.first, e2_type};
+	if (e1_type != e2_type) {
+		err_print (node, type1, type2);
 	}
+}
+
+void check_boolop (astree *node) {
+	astree *expr1 = node->children[0];
+	astree *expr2 = node->children[1];
+	attr_bitset p_type = 0;
+	p_type[ATTR_bool] = p_type[ATTR_char] = p_type[ATTR_int] = 1;
+	attr_bitset e1_type = get_type (expr1);	
+	attr_bitset e2_type = get_type (expr2);
+	type_pair type0 = {NULL, p_type};
+	type_pair type1 = {expr1->type.first, e1_type};
+	type_pair type2 = {expr2->type.first, e2_type};
+	if (!(e1_type[ATTR_bool] | e1_type[ATTR_char]
+		| e1_type[ATTR_int])) {
+		err_print (node, type0, type1);
+	} else if (e1_type != e2_type) {
+		err_print (node, type1, type2);
+	}
+}
+
+void check_binop (astree *node) {
+	astree *expr1 = node->children[0];
+	astree *expr2 = node->children[1];
+	attr_bitset i_type = 0;
+	i_type[ATTR_int] = 1;
+	attr_bitset e1_type = get_type (expr1);	
+	attr_bitset e2_type = get_type (expr2);
+	type_pair type0 = {NULL, i_type};
+	type_pair type1 = {expr1->type.first, e1_type};
+	type_pair type2 = {expr2->type.first, e2_type};
+	if (e1_type != i_type) {
+		err_print (node, type0, type1);
+	} else if (e1_type != e2_type) {
+		err_print (node, type1, type2);
+	}
+}
+
+void check_sign (astree *node) {
+	astree *expr1 = node->children[0];
+	attr_bitset i_type = 0;
+	i_type[ATTR_int] = 1;
+	attr_bitset e1_type = get_type (expr1);	
+	type_pair type0 = {NULL, i_type};
+	type_pair type1 = {expr1->type.first, e1_type};
+	if (e1_type != i_type) {
+		err_print (node, type0, type1);
+	}
+}
+
+void check_ord (astree *node) {
+	astree *expr1 = node->children[0];
+	attr_bitset c_type = 0;
+	c_type[ATTR_char] = 1;
+	attr_bitset e1_type = get_type (expr1);	
+	type_pair type0 = {NULL, c_type};
+	type_pair type1 = {expr1->type.first, e1_type};
+	if (e1_type != c_type) {
+		err_print (node, type0, type1);
+	}
+}
+
+void type_check (astree *node) {
+	int sym = node->symbol;
+	if (sym == TOK_VARDECL) check_vardecl (node);
+	if ((sym == TOK_WHILE) | (sym == TOK_IF) | (sym == TOK_IFELSE)) {
+		check_control (node);
+	}
+	if (sym == '=') check_assing (node);
+	if ((sym == TOK_EQ) | (sym == TOK_NE)) check_eq (node);
+	if ((sym == TOK_LT) | (sym == TOK_LE) | (sym == TOK_GT)
+		| (sym == TOK_GE)) {
+		check_boolop (node);
+	
+	}
+	if ((sym == '+') | (sym == '-') | (sym == '*')
+		| (sym == '/') | (sym == '%')) {
+		check_binop (node);
+	
+	}
+	if ((sym == TOK_POS) | (sym == TOK_NEG)) check_sign (node);
+	if (sym == '!') check_control (node);
+	if (sym == TOK_ORD) check_ord (node);
+	if (sym == TOK_CHR) check_sign (node);
 }
