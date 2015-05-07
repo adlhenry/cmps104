@@ -179,10 +179,10 @@ allocator : TOK_NEW TOK_IDENT '(' ')'     { free_ast2 ($3, $4);
                                             change_sym ($2, TOK_TYPEID);
                                             $$ = adopt1 ($1, $2); }
           | TOK_NEW TOK_STRING '(' expr ')' 
-                                          { free_ast2 ($2, $3);
-                                            free_ast ($5);
-                                            $$ = adopt1sym 
-                                            ($1, $4, TOK_NEWSTRING); }
+                                          { free_ast2 ($3, $5);
+                                            change_sym
+                                            ($1, TOK_NEWSTRING);
+                                            $$ = adopt2 ($1, $2, $4); }
           | TOK_NEW basetype '[' expr ']' { free_ast2 ($3, $5);
                                             change_sym
                                             ($1, TOK_NEWARRAY);
