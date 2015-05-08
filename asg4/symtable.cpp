@@ -222,8 +222,8 @@ symbol_entry define_ident (astree *type, int attr) {
 	astree *ident = type->children[0];
 	if (type->symbol == TOK_ARRAY) {
 		attributes[ATTR_array] = 1;
-		type = type->children[0];
 		ident = type->children[1];
+		type = type->children[0];
 	}
 	attributes[attr_type[type->symbol]] = 1;
 	if (attributes[ATTR_typeid]) {
