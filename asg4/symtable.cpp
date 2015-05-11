@@ -68,6 +68,10 @@ unordered_map<int,vector<int>> sym_attrs = {
 	{TOK_NULL, {ATTR_null, ATTR_const}}
 };
 
+symbol *get_struct (const string *key) {
+	return (*structs)[key];
+}
+
 attr_bitset get_attrs (int symbol) {
 	attr_bitset attributes = 0;
 	vector<int> attrs = sym_attrs[symbol];
@@ -357,6 +361,13 @@ void ref_ident (astree *node) {
 	}
 }
 
+void ref_newarray (astree *node) {
+	astree *type = node->children[0];
+	if (type->symbol == TOK_TYPEID) {
+		typeid_check (type, 0);
+	}
+}
+
 static int define (astree *node) {
 	int block = 0;
 	switch (node->symbol) {
@@ -384,6 +395,9 @@ static int define (astree *node) {
 			break;
 		case TOK_NEW:
 			typeid_check (node->children[0], 0);
+			break;
+		case TOK_NEWARRAY:
+			ref_newarray (node);
 			break;
 		default:
 			set_ast_node (node, NULL);

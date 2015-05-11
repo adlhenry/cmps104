@@ -34,6 +34,12 @@ void err_print (astree *node, type_pair type1, char err) {
 		case 'i':
 			error += "%s operator passed non-indexable type %s";
 			break;
+		case 's':
+			error += "%s operator passed non-selectable type %s";
+			break;
+		case 'u':
+			error += "%s operator selects unknown field from %s";
+			break;
 	}
 	error += " at (%ld.%ld.%ld)\n";
 	errprintf (error.c_str(), node->lexinfo->c_str(),
@@ -299,6 +305,30 @@ void check_index (astree *node) {
 	}
 }
 
+void check_select (astree *node) {
+	astree *expr = node->children[0];
+	astree *field = node->children[1];
+	field->attributes[ATTR_field] = 1;
+	attr_bitset e_type = get_type (expr);
+	type_pair type1 = {expr->type.first, e_type};
+	if (!e_type[ATTR_typeid]) {
+		err_print (node, type1, 's');
+		return;
+	}	
+	symbol *type_id = get_struct (type1.first);
+	symbol_table *fields = type_id->fields;
+	if (fields == NULL ) return;
+	symbol *sym_field = (*fields)[field->lexinfo];
+	if (sym_field == NULL) {
+		err_print (node, type1, 'u');
+	} else {
+		attr_bitset f_type = sym_field->attributes;
+		f_type[ATTR_field] = 0;
+		node->attributes |= f_type;
+		node->type.first = sym_field->type_name;
+	}
+}
+
 void type_check (astree *node) {
 	int sym = node->symbol;
 	if (sym == TOK_VARDECL) check_vardecl (node);
@@ -325,4 +355,5 @@ void type_check (astree *node) {
 	if (sym == TOK_NEWSTRING) check_sign (node);
 	if (sym == TOK_NEWARRAY) check_newarray (node);
 	if (sym == TOK_INDEX) check_index (node);
+	if (sym == '.') check_select (node);
 }
