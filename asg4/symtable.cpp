@@ -231,13 +231,10 @@ symbol_entry define_ident (astree *type, int attr) {
 	}
 	const string *key = ident->lexinfo;
 	symbol *val = new_symbol (ident);
-	
 	val->attributes = attributes;
 	val->type_name = ident->type.first;
-	
 	ident->blocknr = block_stack.back();
 	ident->attributes = val->attributes;
-	
 	if (!attributes[ATTR_field]) {
 		intern_symtable (key, val);
 	}
@@ -262,13 +259,10 @@ void define_struct (astree *node) {
 		err_print (key, type_id, 'i');
 		return;
 	}
-	
 	val->attributes = attributes;
 	val->type_name = key;
 	set_ast_node (type_id, val);
-	
 	sym_print (key, val);
-	
 	symbol_table *fields = new symbol_table();
 	val->fields = fields;
 	depth++;

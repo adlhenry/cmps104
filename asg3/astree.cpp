@@ -49,13 +49,13 @@ astree *adopt1sym (astree *root, astree *child, int symbol) {
 astree *adopt3fn (astree *child1, astree *child2, astree *child3) {
 	astree *root = NULL;
 	if (child3->symbol == ';') {
-		root = new_astree (TOK_PROTOTYPE, child1->filenr, child1->linenr, 
-									child1->offset, "<<PROTOTYPE>>");
+		root = new_astree (TOK_PROTOTYPE, child1->filenr,
+			child1->linenr, child1->offset, "<<PROTOTYPE>>");
 		adopt1 (root, child1);
 		adopt1 (root, child2);
 	} else {
-		root = new_astree (TOK_FUNCTION, child1->filenr, child1->linenr, 
-									child1->offset, "<<FUNCTION>>");
+		root = new_astree (TOK_FUNCTION, child1->filenr,
+			child1->linenr, child1->offset, "<<FUNCTION>>");
 		adopt1 (root, child1);
 		adopt1 (root, child2);
 		adopt1 (root, child3);
@@ -72,7 +72,8 @@ static void dump_node (FILE *outfile, astree *node) {
 	const char *tname = get_yytname (node->symbol);
 	if (strstr (tname, "TOK_") == tname) tname += 4;
 	fprintf (outfile, "%s \"%s\" %ld.%ld.%ld", tname,
-			node->lexinfo->c_str(), node->filenr, node->linenr, node->offset);
+			node->lexinfo->c_str(), node->filenr, node->linenr,
+			node->offset);
 }
 
 static void dump_astree_rec (FILE *outfile, astree *root, int depth) {

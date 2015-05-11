@@ -14,12 +14,22 @@ using namespace std;
 #include "typecheck.h"
 
 using type_pair = pair<const string*,attr_bitset>;
+vector<astree*> return_stack {NULL};
+
+unordered_map<int,int> attr_type2 = {{TOK_VOID, ATTR_void},
+	{TOK_BOOL, ATTR_bool}, {TOK_CHAR, ATTR_char}, {TOK_INT, ATTR_int},
+	{TOK_STRING, ATTR_string}, {TOK_TYPEID, ATTR_typeid}
+};
 
 void err_print (astree *node, type_pair type1, char err) {
 	string error = "%: ";
 	switch (err) {
 		case 'v':
 			error += "%s declares identifier of type %s";
+			break;
+		case 'f':
+			error += "%s expects return type %s, ";
+			error += "but is missing return statement";
 			break;
 		case 'i':
 			error += "%s operator passed non-indexable type %s";
@@ -57,7 +67,7 @@ void check_vardecl (astree *node) {
 		ident = type->children[1];
 		type = type->children[0];
 	}
-	attr_bitset i_type = get_type (ident);	
+	attr_bitset i_type = get_type (ident);
 	attr_bitset e_type = get_type (expr);
 	type_pair type1 = {ident->type.first, i_type};
 	type_pair type2 = {expr->type.first, e_type};
@@ -65,8 +75,8 @@ void check_vardecl (astree *node) {
 		err_print (node, type1, 'v');
 	} else if (i_type != e_type) {
 		if (!i_type[ATTR_string]
-			| !i_type[ATTR_typeid]
-			| !i_type[ATTR_array]) {
+			&& !i_type[ATTR_typeid]
+			&& !i_type[ATTR_array]) {
 			err_print (node, type1, type2);
 		} else if (!e_type[ATTR_null]) {
 			err_print (node, type1, type2);
@@ -91,13 +101,63 @@ void check_control (astree *node) {
 	}
 }
 
+void get_return (astree *root) {
+	if (root == NULL) return;
+	int sym = root->symbol;
+	if ((sym == TOK_RETURN) | (sym == TOK_RETURNVOID)) {
+		return_stack.push_back (root);
+	}
+	for (size_t child = 0; child < root->children.size(); child++) {
+		get_return (root->children[child]);
+	}
+}
+
 void check_return (astree *node) {
 	astree *type = node->children[0];
-	astree *block = node->children[2];
 	astree *ident = type->children[0];
+	astree *block = node->children[2];
 	if (type->symbol == TOK_ARRAY) {
 		ident = type->children[1];
 		type = type->children[0];
+	}
+	attr_bitset i_type = get_type (ident);
+	type_pair type1 = {ident->type.first, i_type};
+	get_return (block);
+	if (!i_type[ATTR_void] && return_stack.back() == NULL) {
+		err_print (ident, type1, 'f');
+	}
+	while (return_stack.back() != NULL) {
+		astree *ret = return_stack.back();
+		attr_bitset e_type = 0;
+		e_type[ATTR_void] = 1;
+		type_pair type2 = {NULL, e_type};
+		if (ret->symbol == TOK_RETURNVOID) {
+			if (!i_type[ATTR_void]) {
+				err_print (ret, type1, type2);
+			}
+			return_stack.pop_back();
+			continue;
+		}
+		astree *expr = ret->children[0];
+		e_type = get_type (expr);
+		type2 = {expr->type.first, e_type};
+		if (i_type[ATTR_void]) {
+			err_print (ret, type1, type2);
+		} else if (i_type != e_type) {
+			if (!i_type[ATTR_string]
+				&& !i_type[ATTR_typeid]
+				&& !i_type[ATTR_array]) {
+				err_print (ret, type1, type2);
+			} else if (!e_type[ATTR_null]) {
+				err_print (ret, type1, type2);
+			}
+		} else {
+			if (i_type[ATTR_typeid]
+				&& (ident->type.first != expr->type.first)) {
+				err_print (ret, type1, type2);
+			}
+		}
+		return_stack.pop_back();
 	}
 }
 
@@ -193,11 +253,12 @@ void check_ord (astree *node) {
 }
 
 void check_newarray (astree *node) {
-	astree *type = node->children[0]; // basetype node
+	astree *type = node->children[0];
 	astree *expr = node->children[1];
 	attr_bitset i_type = 0;
 	i_type[ATTR_int] = 1;
-	attr_bitset t_type = get_type (type);
+	attr_bitset t_type = 0;
+	t_type[attr_type2[type->symbol]] = 1;
 	attr_bitset e_type = get_type (expr);	
 	type_pair type0 = {NULL, i_type};
 	type_pair type1 = {type->type.first, t_type};
@@ -209,8 +270,9 @@ void check_newarray (astree *node) {
 	}
 	t_type[ATTR_array] = 1;
 	node->attributes |= t_type;
-	// not populated currently
-	node->type.first = type->type.first;
+	if (t_type[ATTR_typeid]) {
+		node->type.first = type->lexinfo;
+	}
 }
 
 void check_index (astree *node) {
