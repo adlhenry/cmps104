@@ -26,7 +26,7 @@ int need_line = 0;
 FILE *out = NULL;
 
 const char *attr_string[] = { "void", "bool", "char", "int", "null",
-	"string", "", "array", "function", "variable",
+	"string", "struct", "array", "function", "prototype", "variable",
 	"field", "", "param", "lval", "const",
 	"vreg", "vaddr"
 };
@@ -129,7 +129,9 @@ const char *get_attrstring (const string *type_name,
 	int need_space = 0;
 	string attrstring = "";
 	for (size_t attr = 0; attr < attributes.size(); attr++) {
-		if (attributes[attr] && attr != ATTR_struct) {
+		if (attributes[attr]
+			&& attr != ATTR_struct
+			&& attr != ATTR_prototype) {
 			if (need_space) attrstring += " ";
 			attrstring += attr_string[attr];
 			if (attr == ATTR_typeid && type_name != NULL) {
@@ -187,9 +189,8 @@ void intern_symtable (const string *key, symbol *val) {
 		sym_print (key, val);
 	} else {
 		if ((*table)[key] != NULL) {
-			if (val->attributes[ATTR_function] 
-			&& !(*table)[key]->attributes[ATTR_function]
-			&& !(*table)[key]->attributes[ATTR_variable]) {
+			if (val->attributes[ATTR_function]
+			&& (*table)[key]->attributes[ATTR_prototype]) {
 				proto = (*table)[key];
 				sym_print (key, val);
 			} else {
@@ -219,6 +220,7 @@ symbol_entry typeid_check (astree *type, attr_bitset attributes) {
 symbol_entry define_ident (astree *type, int attr) {
 	attr_bitset attributes = 0;
 	if (attr) attributes[attr] = 1;
+	if (attr == ATTR_prototype) attributes[ATTR_function] = 1;
 	if (attributes[ATTR_variable] | attributes[ATTR_param]) {
 		attributes[ATTR_variable] = 1;
 		attributes[ATTR_lval] = 1;
@@ -276,7 +278,7 @@ void define_struct (astree *node) {
 		key = entry.first;
 		val = entry.second;
 		if ((*fields)[key] == NULL) {
-			fields->insert (entry);
+			(*fields)[key] = val;
 			sym_print (key, val);
 		} else {
 			err_print (key, val, 'i');
@@ -316,7 +318,7 @@ void proto_check (const string *key, symbol *last, astree *param) {
 		}
 	}
 	if (p_param != NULL) err_print (key, last, 'f');
-	proto->attributes[ATTR_function] = 1;
+	proto->attributes[ATTR_prototype] = 0;
 	proto = NULL;
 }
 
@@ -328,17 +330,20 @@ void define_func (astree *node, int attr) {
 	if (proto != NULL) {
 		proto_check (ent.first, last, param);
 	} else {
-		for (size_t child = 0; child < param->children.size(); child++) {
+		for (size_t child = 0; child < param->children.size();
+			child++) {
 			ent = define_ident (param->children[child], ATTR_param);
 			last->parameters = ent.second;
 			last = last->parameters;
 		}
 	}
-	if (attr == ATTR_function) {
-		astree *block = node->children[2];
-		for (size_t child = 0; child < block->children.size(); child++) {
-			astree *stmt = block->children[child];
-			if (stmt->symbol == TOK_VARDECL) fprintf (out, "\n");
+	if (attr == ATTR_prototype) return;
+	astree *block = node->children[2];
+	for (size_t child = 0; child < block->children.size(); child++) {
+		astree *stmt = block->children[child];
+		if (stmt->symbol == TOK_VARDECL) {
+			fprintf (out, "\n");
+			break;
 		}
 	}
 }
@@ -361,7 +366,16 @@ void ref_ident (astree *node) {
 	}
 }
 
+void ref_new (astree *node) {
+	set_ast_node (node, NULL);
+	astree *type = node->children[0];
+	typeid_check (type, 0);
+	node->attributes[ATTR_typeid] = 1;
+	node->type.first = type->lexinfo;
+}
+
 void ref_newarray (astree *node) {
+	set_ast_node (node, NULL);
 	astree *type = node->children[0];
 	if (type->symbol == TOK_TYPEID) {
 		typeid_check (type, 0);
@@ -385,7 +399,7 @@ static int define (astree *node) {
 			break;
 		case TOK_PROTOTYPE:
 			block = 1;
-			define_func (node, 0);
+			define_func (node, ATTR_prototype);
 			break;
 		case TOK_VARDECL:
 			define_ident (node->children[0], ATTR_variable);
@@ -394,7 +408,7 @@ static int define (astree *node) {
 			ref_ident (node);
 			break;
 		case TOK_NEW:
-			typeid_check (node->children[0], 0);
+			ref_new (node);
 			break;
 		case TOK_NEWARRAY:
 			ref_newarray (node);

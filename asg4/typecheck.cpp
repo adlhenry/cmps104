@@ -31,6 +31,12 @@ void err_print (astree *node, type_pair type1, char err) {
 			error += "%s expects return type %s, ";
 			error += "but is missing return statement";
 			break;
+		case 'e':
+			error += "%s call has extra argument type %s";
+			break;
+		case 'm':
+			error += "%s call missing argument type %s";
+			break;
 		case 'i':
 			error += "%s operator passed non-indexable type %s";
 			break;
@@ -57,12 +63,24 @@ void err_print (astree *node, type_pair type1, type_pair type2) {
 		node->filenr, node->linenr, node->offset);
 }
 
-attr_bitset get_type (astree *node) {
-	attr_bitset type = node->attributes;
+template <typename T>
+attr_bitset get_type (T *ptr) {
+	attr_bitset type = ptr->attributes;
 	for (size_t attr = ATTR_function; attr < type.size(); attr++) {
 		if (attr != ATTR_typeid) type[attr] = 0;
 	}
 	return type;
+}
+
+int compatible (type_pair type1, type_pair type2) {
+	if (type1 == type2) return 1;
+	if ((type1.second[ATTR_string]
+		| type1.second[ATTR_typeid]
+		| type1.second[ATTR_array])
+		&& type2.second[ATTR_null]) {
+		return 1;
+	}
+	return 0;
 }
 
 void check_vardecl (astree *node) {
@@ -79,19 +97,8 @@ void check_vardecl (astree *node) {
 	type_pair type2 = {expr->type.first, e_type};
 	if (i_type[ATTR_void]) {
 		err_print (node, type1, 'v');
-	} else if (i_type != e_type) {
-		if (!i_type[ATTR_string]
-			&& !i_type[ATTR_typeid]
-			&& !i_type[ATTR_array]) {
-			err_print (node, type1, type2);
-		} else if (!e_type[ATTR_null]) {
-			err_print (node, type1, type2);
-		}
-	} else {
-		if (i_type[ATTR_typeid]
-			&& (ident->type.first != expr->type.first)) {
-			err_print (node, type1, type2);
-		}
+	} else if (!compatible (type1, type2)) {
+		err_print (node, type1, type2);
 	}
 }
 
@@ -149,19 +156,8 @@ void check_return (astree *node) {
 		type2 = {expr->type.first, e_type};
 		if (i_type[ATTR_void]) {
 			err_print (ret, type1, type2);
-		} else if (i_type != e_type) {
-			if (!i_type[ATTR_string]
-				&& !i_type[ATTR_typeid]
-				&& !i_type[ATTR_array]) {
-				err_print (ret, type1, type2);
-			} else if (!e_type[ATTR_null]) {
-				err_print (ret, type1, type2);
-			}
-		} else {
-			if (i_type[ATTR_typeid]
-				&& (ident->type.first != expr->type.first)) {
-				err_print (ret, type1, type2);
-			}
+		} else if (!compatible (type1, type2)) {
+			err_print (ret, type1, type2);
 		}
 		return_stack.pop_back();
 	}
@@ -180,7 +176,7 @@ void check_assing (astree *node) {
 		type2 = type1;
 		type1.second = l_type;
 		err_print (node, type1, type2);
-	} else if (e1_type != e2_type) {
+	} else if (!compatible (type1, type2)) {
 		err_print (node, type1, type2);
 	}
 	node->attributes |= e1_type;
@@ -194,7 +190,7 @@ void check_eq (astree *node) {
 	attr_bitset e2_type = get_type (expr2);
 	type_pair type1 = {expr1->type.first, e1_type};
 	type_pair type2 = {expr2->type.first, e2_type};
-	if (e1_type != e2_type) {
+	if (!compatible (type1, type2)) {
 		err_print (node, type1, type2);
 	}
 }
@@ -281,6 +277,35 @@ void check_newarray (astree *node) {
 	}
 }
 
+void check_call (astree *node) {
+	astree *ident = node->children[0];
+	if (ident->type.second == NULL) return;
+	symbol *param = ident->type.second->parameters;
+	for (size_t child = 1; child < node->children.size(); child++) {
+		astree *expr = node->children[child];
+		attr_bitset e_type = get_type (expr);
+		type_pair type2 = {expr->type.first, e_type};
+		if (param == NULL) {
+			err_print (ident, type2, 'e');
+			break;
+		}
+		attr_bitset p_type = get_type (param);
+		type_pair type1 = {param->type_name, p_type};
+		// function parameters must not be declared void
+		if (!compatible (type1, type2)) {
+			err_print (ident, type1, type2);
+		}
+		param = param->parameters;
+	}
+	if (param != NULL) {
+		attr_bitset p_type = get_type (param);
+		type_pair type1 = {param->type_name, p_type};
+		err_print (ident, type1, 'm');
+	}
+	node->attributes |= get_type (ident);
+	node->type.first = ident->type.first;
+}
+
 void check_index (astree *node) {
 	astree *expr1 = node->children[0];
 	astree *expr2 = node->children[1];
@@ -354,6 +379,7 @@ void type_check (astree *node) {
 	if (sym == TOK_CHR) check_sign (node);
 	if (sym == TOK_NEWSTRING) check_sign (node);
 	if (sym == TOK_NEWARRAY) check_newarray (node);
+	if (sym == TOK_CALL) check_call (node);
 	if (sym == TOK_INDEX) check_index (node);
 	if (sym == '.') check_select (node);
 }
