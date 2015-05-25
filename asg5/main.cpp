@@ -116,11 +116,12 @@ int main (int argc, char **argv) {
 	} else {
 		dump_symtable (sym_file);
 		dump_astree (ast_file, yyparse_astree);
+		emit_code (stdout);
 	}
+	free_symtable();
 	free_ast (yyparse_astree);
 	yyin_cpp_pclose();
 	dump_stringset (str_file);
-	emit_code (stdout);
 	
 	fclose (sym_file);
 	fclose (ast_file);

@@ -48,8 +48,8 @@ void err_print (astree *node, type_pair type1, char err) {
 			break;
 	}
 	error += " at (%ld.%ld.%ld)\n";
-	errprintf (error.c_str(), node->lexinfo->c_str(),
-		get_attrstring (type1.first, type1.second),
+	string attrs = get_attrstring (type1.first, type1.second);
+	errprintf (error.c_str(), node->lexinfo->c_str(), attrs.c_str(),
 		node->filenr, node->linenr, node->offset);
 }
 
@@ -57,10 +57,10 @@ void err_print (astree *node, type_pair type1, type_pair type2) {
 	string error = "%: ";
 	error += "%s expects type %s but operand is of type %s";
 	error += " at (%ld.%ld.%ld)\n";
-	errprintf (error.c_str(), node->lexinfo->c_str(),
-		get_attrstring (type1.first, type1.second),
-		get_attrstring (type2.first, type2.second),
-		node->filenr, node->linenr, node->offset);
+	string attrs1 = get_attrstring (type1.first, type1.second);
+	string attrs2 = get_attrstring (type2.first, type2.second);
+	errprintf (error.c_str(), node->lexinfo->c_str(), attrs1.c_str(),
+		attrs2.c_str(), node->filenr, node->linenr, node->offset);
 }
 
 template <typename T>

@@ -56,6 +56,7 @@ astree *adopt3fn (astree *child1, astree *child2, astree *child3) {
 			child1->linenr, child1->offset, "<<PROTOTYPE>>");
 		adopt1 (root, child1);
 		adopt1 (root, child2);
+		free_ast (child3);
 	} else {
 		root = new_astree (TOK_FUNCTION, child1->filenr,
 			child1->linenr, child1->offset, "<<FUNCTION>>");
@@ -74,10 +75,10 @@ astree *change_sym (astree *root, int symbol) {
 static void dump_node (FILE *outfile, astree *node) {
 	const char *tname = get_yytname (node->symbol);
 	if (strstr (tname, "TOK_") == tname) tname += 4;
+	string attrs = get_attrstring (node->type.first, node->attributes);
 	fprintf (outfile, "%s \"%s\" (%ld.%ld.%ld) {%ld} %s", tname,
 		node->lexinfo->c_str(), node->filenr, node->linenr,
-		node->offset, node->blocknr, get_attrstring (node->type.first,
-		node->attributes));
+		node->offset, node->blocknr, attrs.c_str());
 	if (node->symbol == TOK_IDENT) {
 		symbol *sym = node->type.second;
 		if (sym != NULL) {

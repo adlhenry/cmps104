@@ -53,6 +53,7 @@ astree *adopt3fn (astree *child1, astree *child2, astree *child3) {
 			child1->linenr, child1->offset, "<<PROTOTYPE>>");
 		adopt1 (root, child1);
 		adopt1 (root, child2);
+		free_ast (child3);
 	} else {
 		root = new_astree (TOK_FUNCTION, child1->filenr,
 			child1->linenr, child1->offset, "<<FUNCTION>>");

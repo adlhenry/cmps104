@@ -124,7 +124,7 @@ void exit_block () {
 	symbol_stack.pop_back();
 }
 
-const char *get_attrstring (const string *type_name,
+string get_attrstring (const string *type_name,
 	attr_bitset attributes) {
 	int need_space = 0;
 	string attrstring = "";
@@ -141,7 +141,7 @@ const char *get_attrstring (const string *type_name,
 			need_space = 1;
 		}
 	}
-	return strdup (attrstring.c_str());
+	return attrstring;
 }
 
 void sym_print (const string *name, symbol *sym) {
@@ -152,9 +152,10 @@ void sym_print (const string *name, symbol *sym) {
 	for (size_t i = 0; i < depth; i++) {
 		fprintf (out, "   ");
 	}
+	string attrs = get_attrstring (sym->type_name, sym->attributes);
 	fprintf (out, "%s (%ld.%ld.%ld) {%ld} %s\n", name->c_str(),
 		sym->filenr, sym->linenr, sym->offset, sym->blocknr,
-		get_attrstring (sym->type_name, sym->attributes));
+		attrs.c_str());
 }
 
 template <typename T>
@@ -196,6 +197,9 @@ void intern_symtable (const string *key, symbol *val) {
 			} else {
 				err_print (key, val, 'i');
 			}
+			table = new symbol_table();
+			(*table)[key] = val;
+			idents.push_back (table);
 		} else {
 			(*table)[key] = val;
 			sym_print (key, val);
@@ -402,6 +406,7 @@ static int define (astree *node) {
 			define_func (node, ATTR_prototype);
 			break;
 		case TOK_VARDECL:
+			set_ast_node (node, NULL);
 			define_ident (node->children[0], ATTR_variable);
 			break;
 		case TOK_IDENT:
@@ -433,4 +438,28 @@ static void scan_astree (astree *root) {
 void dump_symtable (FILE *sym_file) {
 	out = sym_file;
 	scan_astree (yyparse_astree);
+	idents.push_back (symbol_stack.back());
+	symbol_stack.pop_back();
+}
+
+void free_table (symbol_table *table) {
+	for (auto it : (*table)) {
+		symbol *sym = it.second;
+		if (sym != NULL) {
+			if (sym->fields != NULL) {
+				free_table (sym->fields);
+			}
+			delete sym;
+		}
+	}
+	delete table;
+}
+
+void free_symtable () {
+	for (size_t i = 0; i < idents.size(); i++) {
+		if (idents[i] != NULL) {
+			free_table (idents[i]);
+		}
+	}
+	free_table (structs);
 }
