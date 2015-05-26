@@ -343,6 +343,7 @@ void define_func (astree *node, int attr) {
 	}
 	if (attr == ATTR_prototype) return;
 	astree *block = node->children[2];
+	block->blocknr = block_stack.back();
 	for (size_t child = 0; child < block->children.size(); child++) {
 		astree *stmt = block->children[child];
 		if (stmt->symbol == TOK_VARDECL) {
@@ -393,6 +394,7 @@ static int define (astree *node) {
 			define_struct (node);
 			break;
 		case TOK_BLOCK:
+			if (node->blocknr != 0) break;
 			block = 1;
 			new_block();
 			node->blocknr = block_stack.back();
