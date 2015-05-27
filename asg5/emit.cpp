@@ -14,6 +14,10 @@ using namespace std;
 
 using type_pair = pair<const string*,attr_bitset>;
 
+void emit_block (astree *node);
+string emit_expr (astree *node);
+void emit_statement (astree *node);
+
 FILE *oil_file = NULL;
 size_t register_number = 1;
 
@@ -114,101 +118,6 @@ void emit_gvar (astree *node) {
 	fprintf (oil_file, "%s __%s;\n", type.c_str(), name->c_str());
 }
 
-string emit_expr (astree *node) {
-	string reg = "";
-	int sym = node->symbol;
-	if (sym == '=') {
-		string expr1 = emit_expr (node->children[0]);
-		string expr2 = emit_expr (node->children[1]);
-		fprintf (oil_file, "        %s = %s;\n", expr1.c_str(),
-			expr2.c_str());
-	}
-	if ((sym == '+') | (sym == '-') | (sym == '*') | (sym == '/')
-		| (sym == '%') | (sym == TOK_EQ) | (sym == TOK_NE)
-		| (sym == TOK_LT) | (sym == TOK_LE)| (sym == TOK_GT)
-		| (sym == TOK_GE)) {
-		string expr1 = emit_expr (node->children[0]);
-		string expr2 = emit_expr (node->children[1]);
-		type_pair b_type = {node->type.first, node->attributes};
-		string type = get_type (b_type);
-		reg = get_register (b_type);
-		fprintf (oil_file, "        %s %s = %s %s %s;\n", type.c_str(),
-			reg.c_str(), expr1.c_str(), node->lexinfo->c_str(),
-			expr2.c_str());
-	}
-	if ((sym == TOK_POS) | (sym == TOK_NEG) | (sym == '!')
-		| (sym == TOK_ORD) | (sym == TOK_CHR)) {
-		string unop = *node->lexinfo;
-		if (sym == TOK_ORD) unop = "(int)";
-		if (sym == TOK_CHR) unop = "(char)";
-		string expr1 = emit_expr (node->children[0]);
-		type_pair u_type = {node->type.first, node->attributes};
-		string type = get_type (u_type);
-		reg = get_register (u_type);
-		fprintf (oil_file, "        %s %s = %s%s;\n", type.c_str(),
-			reg.c_str(), unop.c_str(), expr1.c_str());
-	}
-	// allocator
-	// call
-	if (sym == TOK_IDENT) {
-		reg = "_";
-		if (node->blocknr != 0) reg += to_string (node->blocknr);
-		reg += "_";
-		reg += *node->lexinfo;
-	}
-	// index
-	// field selection
-	if (node->attributes[ATTR_const]) reg = *node->lexinfo;
-	return reg;
-}
-
-void emit_block (astree *node, void (*emit_statement)(astree*)) {
-	for (size_t child = 0; child < node->children.size(); child++) {
-		emit_statement (node->children[child]);
-	}
-}
-
-void emit_vardecl (astree *node) {
-	astree *ident = get_ident (node->children[0]);
-	astree *expr = node->children[1];
-	string expr_str = emit_expr (expr);
-	const string *name = ident->lexinfo;
-	type_pair i_type = {ident->type.first, ident->attributes};
-	string type = get_type (i_type);
-	if (ident->blocknr == 0) {
-		fprintf (oil_file, "        __%s", name->c_str());
-	} else {
-		fprintf (oil_file, "        %s _%ld_%s", type.c_str(),
-			ident->blocknr, name->c_str());
-	}
-	fprintf (oil_file, " = %s;\n", expr_str.c_str());
-
-}
-
-void emit_statement (astree *node) {
-	switch (node->symbol) {
-		case TOK_BLOCK:
-			emit_block (node, &emit_statement);
-			break;
-		case TOK_VARDECL:
-			emit_vardecl (node);
-			break;
-		case TOK_WHILE:
-			break;
-		case TOK_IF:
-			break;
-		case TOK_IFELSE:
-			break;
-		case TOK_RETURN:
-			break;
-		case TOK_RETURNVOID:
-			break;
-		default:
-			emit_expr (node);
-			break;
-	}
-}
-
 void emit_param (astree *node) {
 	astree *ident = get_ident (node);
 	const string *name = ident->lexinfo;
@@ -235,8 +144,132 @@ void emit_func (astree *node) {
 		}
 	}
 	fprintf (oil_file, "{\n");
-	emit_block (block, &emit_statement);
+	emit_block (block);
 	fprintf (oil_file, "}\n");
+}
+
+void emit_block (astree *node) {
+	for (size_t child = 0; child < node->children.size(); child++) {
+		emit_statement (node->children[child]);
+	}
+}
+
+void emit_vardecl (astree *node) {
+	astree *ident = get_ident (node->children[0]);
+	astree *expr = node->children[1];
+	string expr_str = emit_expr (expr);
+	const string *name = ident->lexinfo;
+	type_pair i_type = {ident->type.first, ident->attributes};
+	string type = get_type (i_type);
+	if (ident->blocknr == 0) {
+		fprintf (oil_file, "        __%s", name->c_str());
+	} else {
+		fprintf (oil_file, "        %s _%ld_%s", type.c_str(),
+			ident->blocknr, name->c_str());
+	}
+	fprintf (oil_file, " = %s;\n", expr_str.c_str());
+
+}
+
+void emit_while (astree *node) {	
+	fprintf (oil_file, "while_%ld_%ld_%ld:;\n",
+		node->filenr, node->linenr, node->offset);
+	string expr = emit_expr (node->children[0]);
+	fprintf (oil_file, "        if (!%s) goto break_%ld_%ld_%ld;\n",
+		expr.c_str(), node->filenr, node->linenr, node->offset);
+	emit_statement (node->children[1]);
+	fprintf (oil_file, "        goto while_%ld_%ld_%ld;\n",
+		node->filenr, node->linenr, node->offset);
+	fprintf (oil_file, "break_%ld_%ld_%ld:;\n",
+		node->filenr, node->linenr, node->offset);
+}
+
+void emit_asign (astree *node) {
+	string expr1 = emit_expr (node->children[0]);
+	string expr2 = emit_expr (node->children[1]);
+	fprintf (oil_file, "        %s = %s;\n", expr1.c_str(),
+		expr2.c_str());
+}
+
+string emit_binop (astree *node) {
+	string expr1 = emit_expr (node->children[0]);
+	string expr2 = emit_expr (node->children[1]);
+	type_pair b_type = {node->type.first, node->attributes};
+	string type = get_type (b_type);
+	string reg = get_register (b_type);
+	fprintf (oil_file, "        %s %s = %s %s %s;\n", type.c_str(),
+		reg.c_str(), expr1.c_str(), node->lexinfo->c_str(),
+		expr2.c_str());
+	return reg;
+}
+
+string emit_unop (astree *node, string unop) {
+	string expr1 = emit_expr (node->children[0]);
+	type_pair u_type = {node->type.first, node->attributes};
+	string type = get_type (u_type);
+	string reg = get_register (u_type);
+	fprintf (oil_file, "        %s %s = %s%s;\n", type.c_str(),
+		reg.c_str(), unop.c_str(), expr1.c_str());
+	return reg;
+}
+
+string emit_ident (astree *node) {
+	string expr = "_";
+	if (node->blocknr != 0) expr += to_string (node->blocknr);
+	expr += "_";
+	return expr += *node->lexinfo;
+}
+
+string emit_expr (astree *node) {
+	string expr = "";
+	int sym = node->symbol;
+	if (sym == '=') emit_asign (node);
+	if ((sym == '+') | (sym == '-') | (sym == '*') | (sym == '/')
+		| (sym == '%') | (sym == TOK_EQ) | (sym == TOK_NE)
+		| (sym == TOK_LT) | (sym == TOK_LE)| (sym == TOK_GT)
+		| (sym == TOK_GE)) {
+		expr = emit_binop (node);
+	}
+	if ((sym == TOK_POS) | (sym == TOK_NEG) | (sym == '!')) {
+			expr = emit_unop (node, *node->lexinfo);
+	}
+	if (sym == TOK_ORD) expr = emit_unop (node, "(int)");
+	if (sym == TOK_CHR) expr = emit_unop (node, "(char)");
+	// allocator
+	// call
+	if (sym == TOK_IDENT) expr = emit_ident (node);
+	// index
+	// field selection
+	if (node->attributes[ATTR_const]) {
+		// return register if string constant
+		expr = *node->lexinfo;
+	}
+	return expr;
+}
+
+void emit_statement (astree *node) {
+	switch (node->symbol) {
+		case TOK_BLOCK:
+			emit_block (node);
+			break;
+		case TOK_VARDECL:
+			emit_vardecl (node);
+			break;
+		case TOK_WHILE:
+			emit_while (node);
+			break;
+		case TOK_IF:
+			break;
+		case TOK_IFELSE:
+			break;
+		case TOK_RETURN:
+			break;
+		case TOK_RETURNVOID:
+			break;
+		default:
+			emit_expr (node);
+			break;
+	}
 }
 
 void emit_queue (void (*emit)(astree*), vector<astree*> queue) {
