@@ -156,8 +156,7 @@ void emit_block (astree *node) {
 
 void emit_vardecl (astree *node) {
 	astree *ident = get_ident (node->children[0]);
-	astree *expr = node->children[1];
-	string expr_str = emit_expr (expr);
+	string expr_str = emit_expr (node->children[1]);
 	const string *name = ident->lexinfo;
 	type_pair i_type = {ident->type.first, ident->attributes};
 	string type = get_type (i_type);
@@ -168,10 +167,9 @@ void emit_vardecl (astree *node) {
 			ident->blocknr, name->c_str());
 	}
 	fprintf (oil_file, " = %s;\n", expr_str.c_str());
-
 }
 
-void emit_while (astree *node) {	
+void emit_while (astree *node) {
 	fprintf (oil_file, "while_%ld_%ld_%ld:;\n",
 		node->filenr, node->linenr, node->offset);
 	string expr = emit_expr (node->children[0]);
@@ -182,6 +180,38 @@ void emit_while (astree *node) {
 		node->filenr, node->linenr, node->offset);
 	fprintf (oil_file, "break_%ld_%ld_%ld:;\n",
 		node->filenr, node->linenr, node->offset);
+}
+
+void emit_if (astree *node) {
+	string expr = emit_expr (node->children[0]);
+	fprintf (oil_file, "        if (!%s) goto fi_%ld_%ld_%ld;\n",
+		expr.c_str(), node->filenr, node->linenr, node->offset);
+	emit_statement (node->children[1]);
+	fprintf (oil_file, "fi_%ld_%ld_%ld:;\n",
+		node->filenr, node->linenr, node->offset);
+}
+
+void emit_ifelse (astree *node) {
+	string expr = emit_expr (node->children[0]);
+	fprintf (oil_file, "        if (!%s) goto else_%ld_%ld_%ld;\n",
+		expr.c_str(), node->filenr, node->linenr, node->offset);
+	emit_statement (node->children[1]);
+	fprintf (oil_file, "        goto fi_%ld_%ld_%ld;\n",
+		node->filenr, node->linenr, node->offset);
+	fprintf (oil_file, "else_%ld_%ld_%ld:;\n",
+		node->filenr, node->linenr, node->offset);
+	emit_statement (node->children[2]);
+	fprintf (oil_file, "fi_%ld_%ld_%ld:;\n",
+		node->filenr, node->linenr, node->offset);
+}
+
+void emit_return (astree *node) {
+	string expr = emit_expr (node->children[0]);
+	fprintf (oil_file, "        return %s;\n", expr.c_str());
+}
+
+void emit_returnvoid () {
+	fprintf (oil_file, "        return;\n");
 }
 
 void emit_asign (astree *node) {
@@ -259,12 +289,16 @@ void emit_statement (astree *node) {
 			emit_while (node);
 			break;
 		case TOK_IF:
+			emit_if (node);
 			break;
 		case TOK_IFELSE:
+			emit_ifelse (node);
 			break;
 		case TOK_RETURN:
+			emit_return (node);
 			break;
 		case TOK_RETURNVOID:
+			emit_returnvoid ();
 			break;
 		default:
 			emit_expr (node);
