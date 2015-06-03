@@ -20,6 +20,7 @@ void emit_statement (astree *node);
 
 FILE *oil_file = NULL;
 size_t register_number = 1;
+unordered_map<const string*,size_t> sconst_register;
 
 vector<astree*> struct_queue;
 vector<astree*> sconst_queue;
@@ -74,6 +75,7 @@ string get_register (type_pair type) {
 			reg = reg_string[attr];
 		}
 	}
+	if (type.second[ATTR_typeid]) reg = "p";
 	if (type.second[ATTR_vaddr]) reg = "a";
 	reg += to_string (register_number);
 	register_number++;
@@ -106,8 +108,9 @@ void emit_struct (astree *node) {
 
 void emit_sconst (astree *node) {
 	const string *s_name = node->lexinfo;
-	fprintf (oil_file, "char* s%ld = %s;\n", register_number++,
-		s_name->c_str());
+	size_t reg = register_number++;
+	sconst_register[node->lexinfo] = reg;
+	fprintf (oil_file, "char* s%ld = %s;\n", reg, s_name->c_str());
 }
 
 void emit_gvar (astree *node) {
@@ -156,7 +159,7 @@ void emit_block (astree *node) {
 
 void emit_vardecl (astree *node) {
 	astree *ident = get_ident (node->children[0]);
-	string expr_str = emit_expr (node->children[1]);
+	string expr = emit_expr (node->children[1]);
 	const string *name = ident->lexinfo;
 	type_pair i_type = {ident->type.first, ident->attributes};
 	string type = get_type (i_type);
@@ -166,7 +169,7 @@ void emit_vardecl (astree *node) {
 		fprintf (oil_file, "        %s _%ld_%s", type.c_str(),
 			ident->blocknr, name->c_str());
 	}
-	fprintf (oil_file, " = %s;\n", expr_str.c_str());
+	fprintf (oil_file, " = %s;\n", expr.c_str());
 }
 
 void emit_while (astree *node) {
@@ -243,11 +246,72 @@ string emit_unop (astree *node, string unop) {
 	return reg;
 }
 
+string emit_new (astree *node, string expr) {
+	type_pair type = {node->type.first, node->attributes};
+	string type1 = get_type (type);
+	string type2 = type1.substr (0, type1.length() - 1);
+	string reg = get_register (type);
+	fprintf (oil_file, "        %s %s = xcalloc (%s, sizeof (%s));\n",
+		type1.c_str(), reg.c_str(), expr.c_str(), type2.c_str());
+	return reg;
+}
+
+string emit_call (astree *node) {
+	string reg = "";
+	string ident = *node->children[0]->lexinfo;
+	vector<string> argreg;
+	for (size_t child = 1; child < node->children.size(); child++) {
+		argreg.push_back (emit_expr (node->children[child]));
+	}
+	if (node->attributes[ATTR_void]) {
+		fprintf (oil_file, "        __%s (", ident.c_str());
+	} else {
+		type_pair c_type = {node->type.first, node->attributes};
+		string type = get_type (c_type);
+		reg = get_register (c_type);
+		fprintf (oil_file, "        %s %s = __%s (",
+			type.c_str(), reg.c_str(), ident.c_str());
+	}
+	for (size_t arg = 0; arg < argreg.size(); arg++) {
+		fprintf (oil_file, "%s", argreg[arg].c_str());
+		if (arg < argreg.size() - 1) {
+			fprintf (oil_file, ", ");
+		}
+	}
+	fprintf (oil_file, ");\n");
+	return reg;
+}
+
 string emit_ident (astree *node) {
 	string expr = "_";
 	if (node->blocknr != 0) expr += to_string (node->blocknr);
 	expr += "_";
 	return expr += *node->lexinfo;
+}
+
+string emit_const (astree *node) {
+	string expr = *node->lexinfo;
+	if (node->attributes[ATTR_int]) {
+		size_t pos = expr.find_first_not_of ("0", 0);
+		if (pos != string::npos) {
+			expr = expr.substr (pos);
+		} else {
+			expr = "0";
+		}
+	}
+	if (node->attributes[ATTR_string]) {
+		expr = "s";
+		expr += to_string (sconst_register[node->lexinfo]);
+	}
+	if (node->attributes[ATTR_null]) expr = to_string (0);
+	if (node->attributes[ATTR_bool]) {
+		if (expr == "false") {
+			expr = to_string (0);
+		} else {
+			expr = to_string (1);
+		}
+	}
+	return expr;
 }
 
 string emit_expr (astree *node) {
@@ -265,14 +329,19 @@ string emit_expr (astree *node) {
 	}
 	if (sym == TOK_ORD) expr = emit_unop (node, "(int)");
 	if (sym == TOK_CHR) expr = emit_unop (node, "(char)");
-	// allocator
-	// call
+	if (sym == TOK_NEW) expr = emit_new (node, "1");
+	if (sym == TOK_NEWSTRING) {
+		expr = emit_new (node, emit_expr (node->children[0]));
+	}
+	if (sym == TOK_NEWARRAY) {
+		expr = emit_new (node, emit_expr (node->children[1]));
+	}
+	if (sym == TOK_CALL) expr = emit_call (node);
 	if (sym == TOK_IDENT) expr = emit_ident (node);
 	// index
 	// field selection
 	if (node->attributes[ATTR_const]) {
-		// return register if string constant
-		expr = *node->lexinfo;
+		expr = emit_const (node);
 	}
 	return expr;
 }
