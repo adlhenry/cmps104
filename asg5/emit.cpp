@@ -283,10 +283,37 @@ string emit_call (astree *node) {
 }
 
 string emit_ident (astree *node) {
+	size_t blocknr = node->blocknr;
+	symbol *sym = node->type.second;
+	if (sym != NULL) blocknr = sym->blocknr;
 	string expr = "_";
-	if (node->blocknr != 0) expr += to_string (node->blocknr);
+	if (blocknr != 0) expr += to_string (blocknr);
 	expr += "_";
 	return expr += *node->lexinfo;
+}
+
+string emit_index (astree *node) {
+	string expr1 = emit_expr (node->children[0]);
+	string expr2 = emit_expr (node->children[1]);
+	type_pair i_type = {node->type.first, node->attributes};
+	string type = get_type (i_type);
+	string reg = get_register (i_type);
+	fprintf (oil_file, "        %s* %s = &%s[%s];\n",
+		type.c_str(), reg.c_str(), expr1.c_str(), expr2.c_str());
+	return string ("*") + reg;
+}
+
+string emit_select (astree *node) {
+	string expr = emit_expr (node->children[0]);
+	string s_name = *node->children[0]->type.first;
+	string field = *node->children[1]->lexinfo;
+	type_pair f_type = {node->type.first, node->attributes};
+	string type = get_type (f_type);
+	string reg = get_register (f_type);
+	fprintf (oil_file, "        %s* %s = &%s->f_%s_%s;\n",
+		type.c_str(), reg.c_str(), expr.c_str(),
+		s_name.c_str(), field.c_str());
+	return string ("*") + reg;
 }
 
 string emit_const (astree *node) {
@@ -338,8 +365,8 @@ string emit_expr (astree *node) {
 	}
 	if (sym == TOK_CALL) expr = emit_call (node);
 	if (sym == TOK_IDENT) expr = emit_ident (node);
-	// index
-	// field selection
+	if (sym == TOK_INDEX) expr = emit_index (node);
+	if (sym == '.') expr = emit_select (node);
 	if (node->attributes[ATTR_const]) {
 		expr = emit_const (node);
 	}

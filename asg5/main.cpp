@@ -106,6 +106,7 @@ int main (int argc, char **argv) {
 	FILE *tok_file = file_open (basename + ".tok", "w");
 	FILE *ast_file = file_open (basename + ".ast", "w");
 	FILE *sym_file = file_open (basename + ".sym", "w");
+	FILE *oil_file = file_open (basename + ".oil", "w");
 	
 	yyin_cpp_popen (filename);
 	scanner_newfilename (filename);
@@ -116,13 +117,14 @@ int main (int argc, char **argv) {
 	} else {
 		dump_symtable (sym_file);
 		dump_astree (ast_file, yyparse_astree);
-		emit_code (stdout);
+		emit_code (oil_file);
 	}
 	free_symtable();
 	free_ast (yyparse_astree);
 	yyin_cpp_pclose();
 	dump_stringset (str_file);
 	
+	fclose (oil_file);
 	fclose (sym_file);
 	fclose (ast_file);
 	fclose (tok_file);
