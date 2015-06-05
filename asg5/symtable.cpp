@@ -409,6 +409,7 @@ static int define (astree *node) {
 		case TOK_PROTOTYPE:
 			block = 1;
 			define_func (node, ATTR_prototype);
+			proto_queue_add (node);
 			break;
 		case TOK_VARDECL:
 			set_ast_node (node, NULL);

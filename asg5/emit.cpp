@@ -25,9 +25,10 @@ unordered_map<const string*,size_t> sconst_register;
 vector<astree*> struct_queue;
 vector<astree*> sconst_queue;
 vector<astree*> gvar_queue;
+vector<astree*> proto_queue;
 vector<astree*> func_queue;
 
-const char *type_string[] = { "", "char", "char", "int", "",
+const char *type_string[] = { "void", "char", "char", "int", "",
 	"char*", "struct", "*"
 };
 
@@ -47,6 +48,10 @@ void gvar_queue_add (astree *node) {
 	if (node->blocknr == 0) {
 		gvar_queue.push_back (node);
 	}
+}
+
+void proto_queue_add (astree *node) {
+	proto_queue.push_back (node);
 }
 
 void func_queue_add (astree *node) {
@@ -126,27 +131,36 @@ void emit_param (astree *node) {
 	const string *name = ident->lexinfo;
 	type_pair i_type = {ident->type.first, ident->attributes};
 	string type = get_type (i_type);
-	fprintf (oil_file, "        %s _%ld_%s", type.c_str(),
+	fprintf (oil_file, "\n        %s _%ld_%s", type.c_str(),
 		ident->blocknr, name->c_str());
 }
 
-void emit_func (astree *node) {
+void emit_proto_min (astree *node) {
 	astree *ident = get_ident (node->children[0]);
 	astree *param = node->children[1];
-	astree *block = node->children[2];
 	const string *name = ident->lexinfo;
 	type_pair i_type = {ident->type.first, ident->attributes};
 	string type = get_type (i_type);
-	fprintf (oil_file, "%s __%s (\n", type.c_str(), name->c_str());
+	fprintf (oil_file, "%s __%s (", type.c_str(), name->c_str());
 	for (size_t child = 0; child < param->children.size(); child++) {
 		emit_param (param->children[child]);
-		if (child == param->children.size() - 1) {
-			fprintf (oil_file, ")\n");
-		} else {
-			fprintf (oil_file, ",\n");
+		if (child < param->children.size() - 1) {
+			fprintf (oil_file, ",");
 		}
 	}
-	fprintf (oil_file, "{\n");
+	if (param->children.size() == 0) fprintf (oil_file, "void");
+	fprintf (oil_file, ")");
+}
+
+void emit_proto (astree *node) {
+	emit_proto_min (node);
+	fprintf (oil_file, ";\n");
+}
+
+void emit_func (astree *node) {
+	astree *block = node->children[2];
+	emit_proto_min (node);
+	fprintf (oil_file, "\n{\n");
 	emit_block (block);
 	fprintf (oil_file, "}\n");
 }
@@ -422,6 +436,9 @@ void emit_code (FILE *out) {
 	emit_queue (&emit_struct, struct_queue);
 	emit_queue (&emit_sconst, sconst_queue);
 	emit_queue (&emit_gvar, gvar_queue);
+	fprintf (oil_file,
+		"void* xcalloc (\n        int nelem,\n        int size);\n");
+	emit_queue (&emit_proto, proto_queue);
 	emit_queue (&emit_func, func_queue);
 	fprintf (oil_file, "void __ocmain (void)\n{\n");
 	emit_main (yyparse_astree);

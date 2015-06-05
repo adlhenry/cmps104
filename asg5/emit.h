@@ -13,6 +13,7 @@ using namespace std;
 void struct_queue_add (astree *node);
 void sconst_queue_add (astree *node);
 void gvar_queue_add (astree *node);
+void proto_queue_add (astree *node);
 void func_queue_add (astree *node);
 void emit_code (FILE *out);
 
